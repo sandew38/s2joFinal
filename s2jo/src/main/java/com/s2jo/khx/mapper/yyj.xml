@@ -1,0 +1,785 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!-- #26. mapper 기본설정 -->
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd"> 
+
+<!-- #27. 루트엘리먼트 & 네임스페이스 설정(프로젝트 전체 내에서 고유해야 한다.) --> 
+<mapper namespace="yyj">
+
+
+	<!-- ==== #43. 메인페이지용 이미지 파일명 가져오기 
+	<select id = "getImgfilenameList" resultType="String">
+		select imgfilename
+		from spring_img_advertise
+		order by imgno desc	
+	</select>
+	-->
+	
+
+	<!-- ==== 유저 분실물 정보 가져오기	 -->
+	
+	
+	
+	 
+	 
+	 <!--  start with seq = 0
+           connect by prior seq = seq 
+         ) -->
+	
+
+	 
+	 
+	 
+	 
+ <select id="lossList" resultType="com.s2jo.khx.model.yyj.lossVO" parameterType="java.util.HashMap"  >
+       
+    select seq,userid,losskind,finddate1,finddate2,finddate3,findplace,note,lossname,article,writepw,realfile,orgfile,filebyte
+    from    
+    (
+      select rownum as RNO
+           , V.seq, V.userid, V.losskind, V.finddate1, V.finddate2, V.finddate3, V.findplace, V.note
+           , V.lossname, V.article, V.writepw
+           , V.realfile,V.orgfile,V.filebyte
+      from 
+      (
+          select seq, userid, losskind 
+               , finddate1 , finddate2,finddate3
+               , findplace, 
+                 case when length(note) > 20 then substr(note, 1, 18)||'..'
+                 else note end as note
+                ,lossname,article,writepw
+               , realfile,orgfile,filebyte
+               
+            from final_userloss
+   
+  
+           <if test="colname1 != null and search1 != null">     
+	            where ${colname1} like '%' || lower(#{search1}) || '%'
+         <!--   where ${colname1} like '%'|| #{search1} ||'%' -->
+	       </if>
+          
+          ) V
+    ) T
+    
+        where T.RNO >= #{start1} and T.RNO <![CDATA[<=]]> #{end1}
+
+   </select>
+	
+	
+	
+	<!-- 총 게시물 건수 구하기 -->
+	
+	<select id="gettotalcount1" parameterType="java.util.HashMap" resultType="int">
+	select count(*)
+	from final_userloss
+	<if test="colname1 != null and search1 != null">     
+              where ${colname1} like '%'|| #{search1} ||'%'
+          </if>
+	</select>
+	
+	
+
+
+	
+	<select id="gettotalcount2" parameterType="java.util.HashMap" resultType="int">
+	select count(*)
+	from final_adminloss
+	<if test="colname2 != null and search2 != null">     
+              where ${colname2} like '%'|| #{search2} ||'%'
+          </if>
+	</select>
+
+
+
+	
+	<select id="gettotalcount3" parameterType="java.util.HashMap" resultType="int">
+	select count(*)
+	from final_member
+	<if test="colname3 != null and search3 != null">     
+              where ${colname3} like '%'|| #{search3} ||'%'
+          </if>
+	</select>
+	
+	
+	
+	
+	
+	
+	
+	<!-- ===== 유실물 등록 ===== -->
+	 <insert id="registerusilyyj" parameterType="com.s2jo.khx.model.yyj.lossVO">
+		insert into final_userloss(seq,userid,losskind,finddate1,finddate2,finddate3,findplace,note,lossname,article,writepw)
+		values(final_lossSeq.nextval,#{userid}, #{losskind}, #{finddate1}, #{finddate2}, #{finddate3}, #{findplace}, #{note}, #{lossname},#{article},#{writepw})
+		
+		 
+	</insert> 
+	
+	
+	
+	<!--  ===== 관리자가 유실물 등록(전체가볼수있게) ===== 
+	<insert id="registerusilAdminyyj" parameterType="com.s2jo.khx.model.yyj.lossVO">
+		insert into final_userloss(seq,userid,losskind,finddate,findplace,note,lossname,article,writepw)
+		values(final_lossSeq.nextval,#{userid}, #{losskind}, #{finddate}, #{findplace}, #{note}, #{lossname},#{article},#{writepw}) 
+	</insert> 
+	 -->
+	
+	 
+	
+	<!-- 첨부파일이 있는 관리자 유실물 등록 -->
+	 <insert id="registerusiladminyyj_withFile" parameterType="com.s2jo.khx.model.yyj.lossAdminVO">
+        
+      insert into final_adminloss(lostno,losthave,storageplace,losttype,lostdate1,lostdate2,lostdate3,itemimg,lostplace,lostcontent,article,lostname,orgfilename,middleFilename)
+      values(#{lostno}, #{losthave}, #{storageplace}, #{losttype}, #{lostdate1},#{lostdate2},#{lostdate3},#{itemimg,jdbcType=VARCHAR},#{lostplace},#{lostcontent}, #{article}, #{lostname},#{orgfilename},#{middleFilename}) 
+     
+	
+	</insert>
+	 
+ 
+
+<!-- 첨부파일이 있는 일반유저 유실물 등록  -->
+	
+	 <insert id="registerusilyyj_withFile" parameterType="com.s2jo.khx.model.yyj.lossVO">
+	 
+      insert into final_userloss(seq,userid,losskind,finddate1,finddate2,finddate3,findplace,note,lossname,article,writepw,realfile,orgfile,filebyte)
+      values(final_lossSeq.nextval, #{userid}, #{losskind}, #{finddate1}, #{finddate2},#{finddate3},#{findplace},#{note},#{lossname},#{article}, #{writepw},#{realfile},#{orgfile},#{filebyte}) 
+    
+	</insert>
+
+
+
+
+	<!-- 전체 유실물을 뽑아주는 리스트(일반회원도볼수있는)  -->
+	
+	
+    
+	
+	 <select id="getallLosslist" resultType="com.s2jo.khx.model.yyj.lossAdminVO" parameterType="java.util.HashMap"  >
+       
+    select  lostno,losthave,storageplace,losttype,lostdate1,lostdate2,lostdate3,itemimg,lostplace,lostcontent,article,lostname,orgfilename,middlefilename
+    from    
+    (
+      select rownum as RNO
+           ,V.lostno,V.losthave,V.storageplace,V.losttype,V.lostdate1
+           , V.lostdate2,V.lostdate3,V.itemimg,V.lostplace,V.lostcontent
+           ,V.article,V.lostname,V.orgfilename,V.middlefilename
+      from 
+      (
+          select lostno,losthave,storageplace,losttype
+               , lostdate1,lostdate2,lostdate3,itemimg,lostplace, 
+                 case when length(lostcontent) > 20 then substr(lostcontent, 1, 18)||'..'
+                 else lostcontent end as lostcontent,
+                article,lostname,orgfilename,middlefilename 
+          
+           from final_adminloss
+             order by lostno desc
+         <if test="colname2 != null and search2 != null">     
+		      where ${colname2} like '%' || lower(#{search2}) || '%'
+		    </if>
+          
+          ) V
+    ) T
+    
+        where T.RNO >= #{start2} and T.RNO <![CDATA[<=]]> #{end2}
+
+	
+	
+	</select>
+	
+	
+	
+	<!-- 회원관리리스트 -->
+  
+   <select id="userList" resultType="com.s2jo.khx.model.yyj.AdminMemberVO" parameterType="java.util.HashMap"  >
+       
+   select userid,name,substr(pwd,1,length(pwd)-3)||lpad('*',4,'*') as pwd,email,hp,post,addr1,addr2,joindate,status,birthday,gender
+    from    
+    (
+      select rownum as RNO
+           ,V.userid,V.name,V.pwd,V.email,V.hp
+           , V.post,V.addr1,V.addr2,V.joindate,V.status
+           ,V.birthday,V.gender
+      from 
+      (
+     
+      
+         select userid,name,pwd,email,hp,post, case when length(addr1) > 20 then substr(addr1, 1, 5)||'..'
+                 else addr1 end as addr1,
+                  case when length(addr2) > 10 then substr(addr2, 1, 5)||'..'
+                 else addr2 end as addr2,joindate,status,birthday,gender
+         from final_member 
+            
+           <if test="colname3 != null and search3 != null">     
+		          where ${colname3} like '%' || lower(#{search3}) || '%'
+		    </if>
+          
+          ) V
+    ) T
+    where T.RNO >= #{start3} and T.RNO <![CDATA[<=]]> #{end3}
+  
+  
+  
+   </select>
+	
+	
+	
+	
+   <!-- 유실물 디테일 페이지 -->	
+
+
+
+
+<resultMap type="java.util.HashMap" id="getlossDetailMap">
+       <result property="lostno"             column="lostno"                   javaType="String" />
+       <result property="lostdate1"          column="lostdate1"                  javaType="String" />
+       <result property="lostdate2"          column="lostdate2"                  javaType="String" />
+       <result property="lostdate3"          column="lostdate3"                  javaType="String" />
+       <result property="lostplace"          column="lostplace"                javaType="String" />
+       <result property="losttype"          column="losttype"                  javaType="String" />
+       <result property="storageplace"          column="storageplace"          javaType="String" />
+       <result property="losthave"          column="losthave"                  javaType="String" />
+       <result property="lostcontent"          column="lostcontent"            javaType="String" />
+       <result property="orgfilename"          column="orgfilename"            javaType="String" />
+       
+    
+       </resultMap>
+  
+	
+	<select id="getlossDetail" resultMap="getlossDetailMap" parameterType="String">
+	
+    select lostno,lostdate1,lostdate2,lostdate3,lostplace,losttype,storageplace,losthave,lostcontent,itemimg,orgfilename
+   
+    from final_adminloss 
+    
+    where lostno = #{lostno}
+		
+	</select>
+	
+	
+<!-- 
+이미지
+관리번호
+습득일
+습득장소
+물품분류
+보관장소
+유실물상태
+비고 -->
+	
+	
+	
+	<!-- 유저가 등록한 유실물 페이지 -->
+	
+	
+<resultMap type="java.util.HashMap" id="lossuserDetailMap">
+       <result property="seq"             column="seq"                   javaType="int" />
+       <result property="userid"          column="userid"                  javaType="String" />
+       <result property="losskind"          column="losskind"                  javaType="String" />
+       <result property="finddate1"          column="finddate1"                  javaType="String" />
+       <result property="finddate2"          column="finddate2"                javaType="String" />
+       <result property="finddate3"          column="finddate3"                  javaType="String" />
+       <result property="findplace"          column="findplace"                  javaType="String" />
+       <result property="note"          column="note"          javaType="String" />
+       <result property="lossname"          column="lossname"                  javaType="String" />
+       <result property="article"          column="article"            javaType="String" />
+       <result property="writepw"          column="writepw"            javaType="String" />
+       <result property="realfile"          column="realfile"                  javaType="String" />
+       <result property="orgfile"          column="orgfile"            javaType="String" />
+       <result property="filebyte"          column="filebyte"            javaType="String" />
+       
+      
+       </resultMap>
+  
+	
+	<select id="getlossuserDetail" resultMap="lossuserDetailMap" parameterType="String">
+
+    select seq,userid,losskind,finddate1,finddate2,finddate3,findplace,note,lossname,article,writepw,realfile,orgfile,filebyte
+   
+    from final_userloss 
+    
+   where   seq = #{seq}
+	
+	</select>
+	
+	
+	
+	 
+<!--	 유실물 이미지 등록       -->
+<select id="getlossDetailimage" resultType="java.util.Map">
+    SELECT itemimg
+    FROM final_adminloss
+</select>
+
+
+
+
+
+
+
+ <!-- 회원디테일  -->
+	
+	
+	
+	
+	
+	
+<resultMap type="java.util.HashMap" id="getUserDetailMap">
+       <result property="userid"             column="userid"                   javaType="String" />
+       <result property="name"          column="name"                  javaType="String" />
+       <result property="pwd"          column="pwd"                  javaType="String" />
+       <result property="email"          column="email"                  javaType="String" />
+       <result property="hp"          column="hp"                javaType="String" />
+       <result property="post"          column="post"                  javaType="String" />
+       <result property="addr1"          column="addr1"          javaType="String" />
+       <result property="addr2"          column="addr2"                  javaType="String" />
+       <result property="joindate"          column="joindate"                  javaType="String" />
+       <result property="status"          column="status"            javaType="int" />
+       <result property="birthday"          column="birthday"            javaType="String" />
+       <result property="gender"          column="gender"            javaType="int" />
+       
+    
+       </resultMap>
+   <!-- parameterType="String" -->
+	
+	<select id="getuserDetail" resultMap="getUserDetailMap">
+	
+    select userid,name,substr(pwd,1,length(pwd)-3)||lpad('*',4,'*') as pwd,email,hp,post,addr1,addr2,joindate,status,birthday,gender
+
+
+    from final_member 
+    
+    where userid = #{userid}
+	
+	</select>
+	
+	
+     <!-- 회원삭제 -->	
+     <update id="getDeleteUser" parameterType="java.util.HashMap">
+		update final_Member set status = 0
+	    where userid = #{deleteid}
+	</update>
+	
+	
+	<!-- 회원삭제 복구 -->	
+     <update id="getUserRestore" parameterType="java.util.HashMap">
+		update final_Member set status = 1
+	    where userid = #{restoreuser}
+	</update>
+	
+	 <!-- 썸네일 -->
+	
+	
+
+ <select id="getLargeImgFilename" resultType="String" parameterType="java.util.HashMap"> 
+		select orgfilename
+		from final_adminloss
+		where lostno = #{lostno}
+		and thumbnailFileName = #{thumbnailFileName}
+	</select>
+	
+	
+	<!-- /////////////////////////////////////////////////////////////////////////////// -->
+	
+		<!-- ===== #48. 로그인 여부 알아오기 ===== -->
+	<select id="loginEnd" parameterType="java.util.HashMap" resultType="int"> 
+		
+select case( select count(*)
+	                 from final_member
+	                 where userid = #{userid} and
+	                        pwd = #{pwd}
+	           )
+             when 1 then 1
+	           else( case(select count(*) 
+	                      from final_member
+	                      where userid = #{userid})
+	                 when 1 then 0
+	                 else -1
+	                 end
+	               )
+	          
+             end as LOGINCHECK
+             
+	  from dual
+    
+	</select>
+	
+	
+	<!-- ===== #51. 로그인 성공한 사용자 정보 가져오기 ===== -->
+	<select id="getLoginMember" parameterType="String" resultType="com.s2jo.khx.model.yyj.MemberVO"> 
+       select userid, name, pwd, email,hp,post
+            addr1, addr2
+            , to_char(joindate, 'yyyy-mm-dd') as joindate
+            , status,birthday,gender	
+	   from final_member
+	   where status = 1 and userid = #{userid}
+	</select>
+	
+	
+	
+	
+	
+	
+	<!-- 열차 수 가져오기 -->
+	
+	<select id="gettotalcount4" parameterType="java.util.HashMap" resultType="int">
+	select count(*)
+	from final_runinfo
+	<if test="colname != null and search != null">     
+              where ${colname} like '%'|| #{search} ||'%'
+          </if>
+	</select>
+	 
+	
+	
+	
+	
+	
+	
+	<!-- 열차리스트 뽑아오기 -->
+	
+ 	<select id="gettrainList" resultType="com.s2jo.khx.model.yyj.trainVO" parameterType="java.util.HashMap"  >
+       
+    select  runinfoseq,trainno,departure,departuretime,arrival,arrivaltime,status
+    from    
+    (
+      select rownum as RNO
+           , V.runinfoseq,V.trainno,V.departure,V.departuretime,V.arrival,V.arrivaltime,V.status
+      from 
+      (
+         select runinfoseq,trainno,departure,departuretime,arrival,arrivaltime,status
+         from final_runinfo
+            
+            <if test="colname != null and search != null">     
+		          where ${colname} like '%' || lower(#{search}) || '%'
+		    </if> 
+          
+          ) V
+    ) T
+    where T.RNO >= #{start} and T.RNO <![CDATA[<=]]> #{end}
+  
+  
+  
+  
+   </select>
+	<!-- 
+		if 만약에 2가 업데이트 되었다면 1은 업데이트를 해주지 아니함. -->
+		
+		
+				
+	<!-- 배차수정페이지요청 -->
+	
+	
+	
+ <select id="getviewtrain" resultType="com.s2jo.khx.model.yyj.trainVO" parameterType="java.util.HashMap"  >
+       
+    select  runinfoseq,trainno,departure,departuretime,arrival,arrivaltime
+          
+            from final_runinfo
+            where runinfoseq = #{runinfoseq,jdbcType=INTEGER}
+             
+   
+  </select>	
+	
+	
+	<!-- 
+	<update id="editTrainEnd" parameterType="java.util.HashMap">
+update final_runinfo set departuretime = departuretime + #{edittime}
+,arrivaltime = arrivaltime+#{edittime} 
+where trainno = #{trainno}
+	</update> -->
+	
+	
+	
+	<!--배차수정  -->
+
+
+<update id="editTrainEnd" parameterType="java.util.HashMap">
+update final_runinfo set departuretime = case when( (substr(departuretime,3,4)+#{departuretime,jdbcType=VARCHAR}) <![CDATA[>]]> 59 ) 
+            then ( case when substr(departuretime,2,1) <![CDATA[<]]> 10 
+                        then '0'|| ( substr(departuretime,2,1)+1) ||  (case 
+                                                                            when (mod((substr(departuretime,3,4)+#{departuretime,jdbcType=VARCHAR}),60)<![CDATA[<]]>10) 
+                                                                            then '0' || mod((substr(departuretime,3,4)+#{departuretime,jdbcType=VARCHAR}),60) 
+                                                                            else to_char(mod((substr(departuretime,3,4)+#{departuretime,jdbcType=VARCHAR}),60 ) ) 
+                                                                            end)
+                        else ( ( substr(departuretime,1,2)+1) ||  (substr(departuretime,3,4)+#{departuretime,jdbcType=VARCHAR}) )
+                        end ) 
+            else ( ( substr(departuretime,1,2) ) ||  (case when (substr(departuretime,3,4)+#{departuretime,jdbcType=VARCHAR})<![CDATA[<]]>10 then '0'||(substr(departuretime,3,4)+#{departuretime,jdbcType=VARCHAR}) else to_char((substr(departuretime,3,4)+#{departuretime,jdbcType=VARCHAR})) end ))
+            end
+            , 
+            
+          
+       arrivaltime  =  case when( (substr(arrivaltime,3,4)+#{departuretime,jdbcType=VARCHAR}) <![CDATA[>]]> 59 ) 
+            then ( case when substr(arrivaltime,2,1) <![CDATA[<]]> 10 
+                        then '0'|| ( substr(arrivaltime,2,1)+1) ||  (case 
+                                                                            when (mod((substr(arrivaltime,3,4)+#{departuretime,jdbcType=VARCHAR}),60)<![CDATA[<]]>10) 
+                                                                            then '0' || mod((substr(arrivaltime,3,4)+#{departuretime,jdbcType=VARCHAR}),60) 
+                                                                            else to_char(mod((substr(arrivaltime,3,4)+#{departuretime,jdbcType=VARCHAR}),60 ) ) 
+                                                                            end)
+                        else ( ( substr(arrivaltime,1,2)+1) ||  (substr(arrivaltime,3,4)+#{departuretime,jdbcType=VARCHAR}) )
+                        end ) 
+            else ( ( substr(arrivaltime,1,2) ) ||  (case when (substr(arrivaltime,3,4)+#{departuretime,jdbcType=VARCHAR})<![CDATA[<]]>10 then '0'||(substr(arrivaltime,3,4)+#{departuretime,jdbcType=VARCHAR}) else to_char((substr(arrivaltime,3,4)+#{departuretime,jdbcType=VARCHAR})) end ))
+            end       
+
+ where runinfoseq = #{runinfoseq,jdbcType=INTEGER}
+
+
+
+
+
+	</update>
+	
+	
+	
+	
+	<!-- 각 날자별 수익금 꺾새그래프로 그리기 -->
+	
+	
+	
+	
+   <resultMap type="java.util.HashMap" id="gettrainchartListMap">
+           <result property="PAYDATE"    column="paydate"       javaType="String" />
+       <result property="TOTALPRICE"    column="totalprice"       javaType="String" />
+    </resultMap>
+   
+   
+   <select id="gettrainchartList" resultMap="gettrainchartListMap" parameterType="String">
+     
+     
+
+ select substr(to_char(paydate,'yyyy-mm-dd'), 9,12) as paydate , sum(totalprice) as totalprice 
+from final_paysummary
+where paystatus != 0
+group by to_char(paydate,'yyyy-mm-dd')
+order by paydate asc
+  
+   </select>
+	
+	<!-- 배차정지 -->
+	
+	 <update id="getstoptrain" parameterType="java.util.HashMap">
+		
+	   update final_runinfo set status = 0
+	   where runinfoseq = #{runinfoseq,jdbcType=INTEGER}
+	    
+	</update>
+	
+   <!-- 배차 복구 -->
+	
+	
+	<update id="gettrainRestore" parameterType="java.util.HashMap">
+		update final_runinfo set status = 1
+	    where runinfoseq = #{runinfoseq,jdbcType=INTEGER}
+	</update>
+	
+	
+	<!-- 배차추가 -->
+	
+	 <insert id="getplustrain" parameterType="java.util.HashMap">
+		insert into final_runinfo(runinfoseq,trainno,departure,departuretime,arrival,arrivaltime)
+		values(runinfoseq.nextval, #{trainno}, #{departure}, #{departuretime}, #{arrival}, #{arrivaltime})
+	
+    	</insert> 
+	
+	<!-- 배차추가 열차리스트 폼페이지 -->
+	
+	<!-- 
+<select id="getplustrainlist" resultType="com.s2jo.khx.model.yyj.trainVO" parameterType="java.util.HashMap"  >
+       
+    select  runinfoseq,trainno,departure,departuretime,arrival,arrivaltime
+          
+            from final_runinfo
+</select>            
+             --> 
+
+
+<!-- 배차 삭제 카운트 -->
+ 
+
+
+	
+	<select id="gettotalcount5" parameterType="java.util.HashMap" resultType="int">
+	select count(*)
+	from final_runinfo
+	<if test="traintype != null and search5 != null">     
+              where ${traintype} like '%'|| #{search5} ||'%'
+          </if>
+	</select>
+
+<resultMap type="java.util.HashMap" id="traintypeMap">
+<result property="traintype"             column="traintype"                  javaType="int" />
+<result property="departure"             column="departure"                  javaType="String" />
+<result property="departuretime"             column="departuretime"                  javaType="String" />
+<result property="arrival"             column="arrival"                  javaType="String" />
+<result property="arrivaltime"             column="arrivaltime"                  javaType="String" />
+<result property="trainno"             column="trainno"                  javaType="int" />
+
+</resultMap>
+
+  <!-- 배차삭제 리스트 -->
+
+
+
+<select id="gettraindeleteList" resultMap="traintypeMap" parameterType="java.util.HashMap">
+       
+  
+select traintype,departure,departuretime,arrival,arrivaltime,trainno
+from
+(
+select rownum as RNO
+           , V.traintype,V.departure,V.departuretime,V.arrival,V.arrivaltime,V.trainno
+from          
+(
+select T.traintype as traintype
+    ,  R.departure as departure
+    ,  R.departuretime as departuretime
+    ,  R.arrival as arrival
+    ,  R.arrivaltime as arrivaltime
+    ,  T.trainno as trainno
+  
+   from final_traininfo T inner join final_runinfo R  -- Inner JOIN(내부조인)
+   on T.trainno = R.trainno
+    <if test="traintype != null and search5 != null">     
+		          where ${traintype,jdbcType=INTEGER} like '%' || lower(#{search5}) || '%'
+		    </if> 
+ )V 
+)T  
+ where T.RNO >= #{start5} and T.RNO <![CDATA[<=]]> #{end5}
+   and traintype = #{traintype,jdbcType=VARCHAR}
+  
+  
+  
+   </select>
+
+
+
+
+ <!-- 유저가입 얼마지났는지 보여주는 리스트 만들기 -->
+
+
+ 
+<resultMap type="java.util.HashMap" id="gettimelinelistMap">
+       <result property="userid"             column="userid"                   javaType="String" />
+       <result property="joindate"          column="joindate"                  javaType="String" />
+       <result property="day"          column="day"                  javaType="String" />
+       <result property="hour"          column="hour"                  javaType="String" />
+       <result property="minute"          column="minute"                javaType="String" />
+       <result property="second"          column="second"                javaType="String" /> 
+
+
+</resultMap>
+ 
+<select id="gettimelinelist" resultMap="gettimelinelistMap">
+  select joindate,day,hour,minute,second,RNO,userid
+  from
+  (
+  select rownum as RNO
+    ,V.joindate,V.day,V.hour,V.minute,V.second,V.userid
+  from
+  (
+   select to_char(joindate, 'yyyy-mm-dd hh24 mi ss') as joindate,userid,
+            trunc(sysdate - joindate) as day,
+            trunc(((sysdate - joindate) - trunc(sysdate - joindate)) * 24) as hour,
+            trunc((((sysdate - joindate) - trunc(sysdate - joindate)) * 24 - trunc(((sysdate - joindate) - trunc(sysdate - joindate)) * 24)) * 60) as minute,
+            trunc(((((sysdate - joindate) - trunc(sysdate - joindate)) * 24 - trunc(((sysdate - joindate) - trunc(sysdate - joindate)) * 24)) * 60 - trunc((((sysdate - joindate) - trunc(sysdate - joindate)) * 24 - trunc(((sysdate - joindate) - trunc(sysdate - joindate)) * 24)) * 60)) * 60) as second
+            
+     from final_member
+      where status = 1
+      and joindate is not null
+     order by joindate desc
+     )V
+       )T
+    
+     where T.RNO <![CDATA[>=]]> 1 and T.RNO <![CDATA[<=]]> 5
+      order by rno asc
+     
+     
+</select>
+
+
+
+ <!-- 스크린락 -->
+
+
+
+
+<resultMap type="java.util.HashMap" id="getscreenLockMap">
+     <result property="userid"             column="userid"                   javaType="String" />
+       <result property="name"          column="name"                  javaType="String" />
+       <result property="pwd"          column="pwd"                  javaType="String" />
+       <result property="email"          column="email"                  javaType="String" />
+       <result property="hp"          column="hp"                javaType="String" />
+       <result property="post"          column="post"                  javaType="String" />
+       <result property="addr1"          column="addr1"          javaType="String" />
+       <result property="addr2"          column="addr2"                  javaType="String" />
+       <result property="joindate"          column="joindate"                  javaType="String" />
+       <result property="status"          column="status"            javaType="int" />
+       <result property="birthday"          column="birthday"            javaType="String" />
+       <result property="gender"          column="gender"            javaType="int" />
+       
+
+
+</resultMap>
+ 
+<select id="getscreenLock" resultMap="getscreenLockMap">
+  
+  select *
+  from final_member
+  where userid = 'admin'
+
+   </select>
+
+
+<!--  라이크 차트 만들기 -->
+
+
+<resultMap type="java.util.HashMap" id="getlikechartMap">
+           <result property="name"    column="name"       javaType="String" />
+       <result property="cnt"    column="cnt"       javaType="String" />
+    </resultMap>
+   
+   
+   <select id="getlikechartList" resultMap="getlikechartMap" parameterType="String">
+     
+
+select name,cnt
+from FINAL_TOURLIKE
+where cnt != 0
+order by cnt desc
+  
+   </select>
+
+	
+	
+	
+	
+	
+	
+	
+	
+	
+<resultMap type="java.util.HashMap" id="getgoListMap">
+           <result property="arrival"    column="arrival"       javaType="String" />
+ 		   <result property="count"    column="count"       javaType="String" />
+    </resultMap>
+   
+   
+   <select id="getgoList" resultMap="getgoListMap" parameterType="String">
+     
+
+select arrival,count(arrival) as count
+from FINAL_TICKETSUMMARY A join FINAL_TICKETDETAIL B
+on A.ORDERSEQ = B.ORDERSEQ
+join FINAL_TICKETDETAIL C
+on B.ORDERSEQ = C.ORDERSEQ
+join FINAL_SEAT D
+on C.SEATSEQ = D.SEATSEQ
+join FINAL_RUNINFO E
+on D.RUNINFOSEQ = E.RUNINFOSEQ
+join FINAL_TRAININFO F
+on E.TRAINNO = F.TRAINNO
+group by arrival
+ 
+   </select>
+	
+	
+	
+</mapper>

@@ -1,0 +1,327 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!-- #26. mapper 기본설정 -->
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd"> 
+
+<!-- #27. 루트엘리먼트 & 네임스페이스 설정(프로젝트 전체 내에서 고유해야 한다.) --> 
+<mapper namespace="khx">
+
+	<!-- ==== 출발지 리스트 가져오기	 -->
+	<select id="departureList" resultType="String">
+		select DISTINCT(departure)
+		from final_runinfo
+		order by departure
+	</select>
+	
+	<!-- ==== 도착지 리스트 가져오기	 -->
+	<select id="arrivalList" resultType="String">
+		select DISTINCT(arrival)
+		from final_runinfo
+		order by arrival
+	</select>
+	
+	
+	<!-- ==== 열차 운행 정보 가져오기	 -->
+	
+	<resultMap type="java.util.HashMap" id="trainList_resultmap">
+		<result property="traintype" 		column="traintype" 			javaType="String" />
+		<result property="departure" 		column="departure" 			javaType="String" />
+		<result property="arrival" 			column="arrival" 			javaType="String" />
+		
+		<result property="trainno" 			column="trainno" 			javaType="int" />
+		<result property="departuretime" 	column="departuretime" 		javaType="String" />
+		<result property="arrivaltime" 		column="arrivaltime" 		javaType="String" />
+		
+		<result property="turnaroundrate" 	column="turnaroundrate" 	javaType="int" />
+		<result property="perminuterate" 	column="perminuterate" 		javaType="int" />
+		<result property="rate" 			column="rate" 				javaType="int" />
+		
+		<!-- 	 key 값 , value 값, value 값의 타입 -->
+	</resultMap>	
+	
+	<select id="trainList" resultMap="trainList_resultmap"  parameterType="java.util.HashMap">
+		select trainno, traintype, departure, departuretime, arrival, arrivaltime, turnaroundrate, perminuterate, rate
+		from 
+		(
+			select trainno, case when traintype = 1 then 'KHX' else '무궁화' end as traintype, departure, departuretime, arrival, arrivaltime
+					        , case when (substr(turnaroundtime,1,2) >0) then hour*60+min else min end as turnaroundrate
+					        , perminuterate
+					        , case when (substr(turnaroundtime,1,2) >0) then hour*60+min else min end  * perminuterate as rate
+					from 
+					(
+					  select trainno, traintype, departure, departuretime, arrival, arrivaltime
+					          , turnaroundtime
+					          , hour, min
+					          , perminuterate
+					  from
+					    (
+					      select A.trainno, departure, departuretime, arrival, arrivaltime 
+					              , traintype, B.Perminuterate
+					              , to_number(arrivaltime)-to_number(departuretime) as turnaroundtime
+					              , substr(arrivaltime,1,2) - substr(departuretime,1,2) as hour
+					              , substr(arrivaltime,3,4) - substr(departuretime,3,4) as min
+					      from final_runinfo A join Final_Traininfo B
+					      on A.Trainno = B.Trainno
+					      
+					    )C
+					 )T
+					 where traintype = #{int_traintype}
+					 and departure = #{departure} 
+					 and arrival = #{arrival}
+					 order by departuretime asc
+		)
+	</select>
+	
+	
+	<!-- 남은 좌석 수 알아오기  -->
+	<select id="remainseatcnt" parameterType="java.util.HashMap" resultType="int">
+		select count(*) as cnt
+		from final_runinfo A join final_seat B
+		on A.RUNINFOSEQ = B.RUNINFOSEQ
+		join FINAL_TICKETDETAIL C
+		on B.SEATSEQ = C.SEATSEQ
+		where a.trainno=#{trainno} and a.departure=#{departure} and a.arrival=#{arrival} and classno = #{trainclass} and departuredate = #{departuredate} and C.ORDERstatus = 1
+	</select>
+	
+	
+	<!-- 팔린 좌석 목록 가져오기 --> 
+	<select id="takenseatList" parameterType="java.util.HashMap" resultType="String">
+		select b.seatno as seatno
+		from final_ticketdetail A join final_seat B
+		on A.Seatseq = B.Seatseq
+		join final_runinfo C
+		on C.Runinfoseq = B.Runinfoseq
+		where orderstatus = 1 and departuredate = #{departuredate} and c.trainno = #{trainno} 
+		and departure = #{departure} and arrival = #{arrival} and classno = #{trainclass}
+	</select>
+	
+	<!-- 팔린 좌석 목록 가져오기 (좌석번호별) -->
+	<select id="seatList" parameterType="java.util.HashMap" resultType="String">
+		select count(*)
+		from final_ticketdetail A join final_seat B
+		on A.Seatseq = B.Seatseq
+		join final_runinfo C
+		on C.Runinfoseq = B.Runinfoseq
+		where orderstatus = 1 and departuredate = #{departuredate} and c.trainno = #{trainno} 
+		and departure = #{departure} and arrival = #{arrival} and seatno = #{seatno}
+	</select>
+	
+	<!-- ===== yj 정회원 로그인 여부 알아오기 ===== 		-->
+	<select id="seatloginEnd" parameterType="java.util.HashMap" resultType="int"> 
+ 	select case( select count(*)
+	               from final_member
+	               where userid = #{userid} )
+	         when 1 then 1
+	         else( case(select count(*) 
+	                    from final_member
+	                    where userid = #{userid})
+	               when 1 then 0
+	               else -1
+	               end
+	             )
+	         end as LOGINCHECK
+	  from dual
+	</select>
+	
+	
+	<!-- ===== yj 회원 로그인 완료요청! ===== 		-->
+	<select id="getLoginEnd" parameterType="String" resultType="com.s2jo.khx.model.psc.khxpscMemberVO"> 
+	   select userid, name, pwd, email, hp, post, addr1,
+			addr2, to_char(joindate, 'yyyy-mm-dd') as joindate, status, birthday,  gender
+	   from final_member
+	   where status = 1 and userid = #{userid}
+	</select>
+	
+	
+	<!-- ==== 비회원 가입 가능한지 알아오기 -->
+	<select id="noncheck" parameterType="String" resultType="int"> 
+		select case( select count(*)
+		             from final_nonmember
+		             where nhp = #{nhp} )
+		       when 1 then 1
+		       else 0
+		       end as NONLOGINCHECK
+		from dual
+	</select>
+	
+	
+	<!-- ==== yj 비회원 정보 가져오기  -->
+	<select id="getNonLoginEnd" parameterType="String" resultType="com.s2jo.khx.model.psc.khxpscNonMemberVO"> 
+		   select nonno, nhp, npwd, status
+		   from final_nonmember
+		   where status = 1 and nhp = #{nhp}
+	</select>
+	
+	<!-- ==== 비회원 테이블에서 nonno 알아오기 -->
+	<select id="getnonno" parameterType="String" resultType="String"> 
+		select max(to_number(nonno))
+		from final_nonmember
+		where nhp = #{nhp}
+		order by to_number(nonno) desc
+	</select>
+	
+	<!-- ==== 열차번호, 출발지, 도착지로 runinfoseq 가져오기 -->
+	<select id="getruninfoseq" parameterType="java.util.HashMap" resultType="int"> 
+		select runinfoseq
+		from final_runinfo
+		where trainno = #{trainno} and departure = #{departure} and arrival = #{arrival}
+	</select>
+	
+	
+	<!-- ==== 좌석테이블에 예약한 좌석 넣어주기 -->
+	<insert id="insertseats" parameterType="java.util.HashMap">
+		insert into final_seat(seatseq, runinfoseq, classno, seatno)
+		values(seatseq.nextval, #{runinfoseq}, #{classno}, #{seatno})  
+	</insert>
+	
+	<!-- ==== 티켓 개요 테이블에 INSERT 하기 (회원용) -->
+	<insert id="insertticketsum" parameterType="java.util.HashMap">
+		insert into final_ticketsummary (orderseq, userid, nonno, tqty, orderdate)
+		values(orderseq.nextval, #{userid}, '8', #{tqty}, sysdate)
+	</insert>
+
+	<!-- ==== 티켓 개요 테이블에 INSERT 하기 (비회원용) -->
+	<insert id="noninsertticketsum" parameterType="java.util.HashMap">
+		insert into final_ticketsummary (orderseq, userid, nonno, tqty, orderdate)
+		values(orderseq.nextval, 'null', #{nonno}, #{tqty}, sysdate)
+	</insert>
+
+	
+	<!-- ==== 결제 테이블에 INSERT 하기 (회원용) -->
+	<insert id="insertpaysum" parameterType="java.util.HashMap">
+		insert into final_paysummary(paymentcode, paydate, totalprice, userid, nonno, paystatus )
+		values(paymentcode.nextval, default, #{totalPrice}, #{userid}, '8', default)
+	</insert>
+	
+	<!-- ==== 결제 테이블에 INSERT 하기 (비회원용) -->
+	<insert id="noninsertpaysum" parameterType="java.util.HashMap">
+		insert into final_paysummary(paymentcode, paydate, totalprice, userid, nonno, paystatus )
+		values(paymentcode.nextval, default, #{totalPrice}, 'null', #{nonno}, default)
+	</insert>
+	
+	
+	<!-- ==== 티켓 개요 테이블에서 주문번호 시퀀스 갖고오기 (회원용) -->
+	<select id="getorderseq" parameterType="java.util.HashMap" resultType="int"> 
+		select max(to_number(orderseq))
+		from 
+		(
+		  select orderseq, userid, nonno, tqty, orderdate
+		  from final_ticketsummary
+		  order by orderdate desc
+		)V 
+		where userid = #{userid}
+	</select>
+		
+	
+	<!-- ==== 티켓 개요 테이블에서 주문번호 시퀀스 갖고오기 (비회원용) -->
+	<select id="nongetorderseq" parameterType="java.util.HashMap" resultType="int"> 
+		select max(to_number(orderseq))
+		from 
+		(
+		  select orderseq, userid, nonno, tqty, orderdate
+		  from final_ticketsummary
+		  order by orderdate desc
+		)V 
+		where nonno = #{nonno}
+	</select>
+	
+	<!-- ==== 결제 테이블에서 결제코드번호 시퀀스 갖고오기 (회원용) -->
+	<select id="getpaymentcode" parameterType="java.util.HashMap" resultType="int"> 
+		select max(to_number(paymentcode))
+		from 
+		(
+		  select paymentcode, paydate, totalprice, userid, nonno, paystatus
+		  from FINAL_PAYSUMMARY
+		  order by paydate desc
+		)V 
+		where userid = #{userid} and paystatus = 1
+	</select>
+	
+	<!-- ==== 결제 테이블에서 결제코드번호 시퀀스 갖고오기 (비회원용) -->
+	<select id="nongetpaymentcode" parameterType="java.util.HashMap" resultType="int"> 
+		select max(to_number(paymentcode))
+		from 
+		(
+		  select paymentcode, paydate, totalprice, userid, nonno, paystatus
+		  from FINAL_PAYSUMMARY
+		  order by paydate desc
+		)V 
+		where nonno = #{nonno} and paystatus = 1
+	</select>
+	
+	<!--  ==== 좌석 테이블에서 좌석번호시퀀스 seatseq 가져오기 -->
+	<select id="getseatseq" resultType="int">
+		select max(seatseq)
+		from
+		(
+		  select to_number(seatseq) as seatseq, runinfoseq, classno, seatno
+		  from final_seat
+		  order by to_number(seatseq) desc
+		)v
+	</select>
+	
+	
+	<!-- ==== 티켓 상세 테이블에 INSERT 하기 (final_ticketdetail) (회원용) -->
+	<insert id="insertticketdet" parameterType="java.util.HashMap">
+		insert into final_ticketdetail (ticketno, orderseq, departuredate, ppt , ageline, seatseq, orderstatus)
+		values(ticketno.nextval, #{orderseq}, #{departuredate}, #{ppt}, #{ageline}, #{seatseq}, '1')
+	</insert>
+	
+	<!-- ==== 티켓 상세 테이블에 INSERT 하기 (final_ticketdetail) (비회원용) -->
+	<insert id="noninsertticketdet" parameterType="java.util.HashMap">
+		insert into final_ticketdetail (ticketno, orderseq, departuredate, ppt , ageline, seatseq, orderstatus)
+		values(ticketno.nextval, #{orderseq}, #{departuredate}, #{ppt}, #{ageline}, #{seatseq}, '1')
+	</insert>
+	
+	<!--  ==== 가장 최근의 ticketno 가져오기 -->
+	<select id="getticketno" resultType="int">
+		select max(ticketno)
+		from 
+		(
+		  select to_number(ticketno) as ticketno, orderseq, departuredate, ppt, ageline, seatseq, orderstatus
+		  from FINAL_TICKETDETAIL
+		  order by to_number(ticketno) desc
+		)V
+	</select>
+	
+	
+	<!-- ==== 결제 상세 테이블에 INSERT 하기 -->
+	<insert id="insertpaydet" parameterType="java.util.HashMap">
+		insert into final_paydetail(paydetailseq, ticketno, paymentcode)
+		values(paydetailseq.nextval, #{ticketno}, #{paymentcode})
+	</insert>
+	
+	
+	<!-- ==== 비회원 테이블에 INSERT 하기 -->
+	<insert id="insertnonmember" parameterType="java.util.HashMap">
+		insert into final_nonmember(nonno, nhp, npwd, status)
+		values(SEQ_FINAL_NONMEMBER.nextval, #{nhp}, #{npwd}, default)
+	</insert>
+	
+	
+	
+	<!-- ====	#151. Ajax로 검색어 입력시 자동글 완성하기 ⑥	==== -->
+	<resultMap type="java.util.HashMap" id="getSearchWordMap">
+		<result property="SEARCHDATA" column="searchdata" javaType="String"/> <!-- 해쉬맵의 key 값, 아래 나오는 컬럼값 -->
+	</resultMap>
+	
+	<select id = "searchWordCompleteList" parameterType="java.util.HashMap" resultMap="getSearchWordMap">
+		
+		<if test='colname.equals("departure")'>
+			select distinct(departure) as searchdata
+			from final_runinfo
+			where lower(departure) like '%'|| lower(#{search}) ||'%'
+		</if>
+		
+		<if test='colname.equals("arrival")'>
+			select distinct(arrival) as searchdata
+			from final_runinfo
+			where lower(arrival) like '%'|| lower(#{search}) ||'%'
+		</if>		
+		
+	</select>
+	
+	
+	
+	
+</mapper>

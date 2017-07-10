@@ -1,0 +1,383 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!-- #26. mapper 기본설정 -->
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd"> 
+
+<!-- #27. 루트엘리먼트 & 네임스페이스 설정(프로젝트 전체 내에서 고유해야 한다.) --> 
+<mapper namespace="lsk">
+
+	<!-- === 1개의 예약내역(비회원) 확인하는 리스트 === -->
+	<resultMap type="java.util.HashMap" id="bookingList1">
+		
+    	<result property="PAYMENTCODE" 		column="paymentcode" 	javaType="String" />
+    	<result property="NONNO" 			column="nonno" 			javaType="String" />
+    	<result property="TOTALPRICE" 		column="totalprice" 	javaType="String" />
+    	<result property="TQTY" 			column="tqty" 			javaType="String" />
+    	<result property="PAYDATE" 			column="paydate" 		javaType="String" />
+    	<result property="DEPARTURE" 		column="departure" 		javaType="String" />
+    	<result property="ARRIVAL" 			column="arrival" 		javaType="String" />
+    	<result property="DEPARTUREDATE" 	column="departuredate" 	javaType="String" />
+    	<result property="DEPARTURETIME" 	column="departuretime" 	javaType="String" />
+    	<result property="TRAINTYPE" 		column="traintype" 		javaType="String" /> 
+    	<result property="ORDERSEQ" 		column="orderseq" 		javaType="String" />
+    	<result property="TRAINNO" 			column="trainno" 		javaType="String" />
+    	<result property="CLASSNO" 			column="classno" 		javaType="String" />    	
+	    
+    </resultMap>
+    
+    <select id="getNon_BookingList" parameterType="String" resultMap="bookingList1" >
+    	select a.paymentcode, a.nonno, a.totalprice, G.TQTY, a.paydate, 
+    	e.departure, e.arrival, C.DEPARTUREDATE, E.DEPARTURETIME, F.TRAINTYPE, C.ORDERSEQ, E.TRAINNO, D.CLASSNO
+		from FINAL_paySUMMARY A join FINAL_payDETAIL B
+		on A.PAYMENTCODE = B.PAYMENTCODE
+		join FINAL_TICKETDETAIL C
+		on B.TICKETNO = C.TICKETNO
+		join FINAL_TICKETSUMMARY G
+		on G.ORDERSEQ = C.ORDERSEQ
+		join FINAL_SEAT D
+		on C.SEATSEQ = D.SEATSEQ
+		join FINAL_RUNINFO E
+		on D.RUNINFOSEQ = E.RUNINFOSEQ
+		join FINAL_TRAININFO F
+		on E.TRAINNO = F.TRAINNO
+		where a.nonno = #{nonno} and  C.ORDERSTATUS = 1
+		group by a.paymentcode, a.nonno, A.TOTALPRICE, A.payDATE, c.DEPARTUREDATE, 
+		e.departure, e.arrival, E.DEPARTURETIME, F.TRAINTYPE, G.TQTY, C.ORDERSEQ, E.TRAINNO, D.CLASSNO
+		order by to_date(C.DEPARTUREDATE) asc
+    </select>
+    
+    
+    <!-- === 1개의 예약내역(회원) 확인하는 리스트 === -->
+	<resultMap type="java.util.HashMap" id="bookingList2">
+		
+    	<result property="PAYMENTCODE" 		column="paymentcode" 	javaType="String" />
+    	<result property="USERID" 			column="userid" 		javaType="String" />
+    	<result property="TOTALPRICE" 		column="totalprice" 	javaType="String" />
+    	<result property="TQTY" 			column="tqty" 			javaType="String" />
+    	<result property="PAYDATE" 			column="paydate" 		javaType="String" />
+    	<result property="DEPARTURE" 		column="departure" 		javaType="String" />
+    	<result property="ARRIVAL" 			column="arrival" 		javaType="String" />
+    	<result property="DEPARTUREDATE" 	column="departuredate" 	javaType="String" />
+    	<result property="DEPARTURETIME" 	column="departuretime" 	javaType="String" />
+    	<result property="TRAINTYPE" 		column="traintype" 		javaType="String" />
+    	<result property="ORDERSEQ" 		column="orderseq" 		javaType="String" />
+    	<result property="TRAINNO" 			column="trainno" 		javaType="String" />
+    	<result property="CLASSNO" 			column="classno" 		javaType="String" />
+    
+    </resultMap>
+    
+    <select id="getMbr_BookingList" parameterType="String" resultMap="bookingList2" >
+		select a.paymentcode, a.userid, a.totalprice, G.TQTY, a.paydate, e.departure, 
+		e.arrival, C.DEPARTUREDATE, E.DEPARTURETIME, F.TRAINTYPE, C.ORDERSEQ, E.TRAINNO, D.CLASSNO
+		from FINAL_paySUMMARY A join FINAL_payDETAIL B
+		on A.PAYMENTCODE = B.PAYMENTCODE
+		join FINAL_TICKETDETAIL C
+		on B.TICKETNO = C.TICKETNO
+		join FINAL_TICKETSUMMARY G
+		on G.ORDERSEQ = C.ORDERSEQ
+		join FINAL_SEAT D
+		on C.SEATSEQ = D.SEATSEQ
+		join FINAL_RUNINFO E
+		on D.RUNINFOSEQ = E.RUNINFOSEQ
+		join FINAL_TRAININFO F
+		on E.TRAINNO = F.TRAINNO
+		where a.userid = #{userid} and  C.ORDERSTATUS = 1
+		group by a.paymentcode, a.userid, A.TOTALPRICE, A.payDATE, c.DEPARTUREDATE, 
+		e.departure, e.arrival, E.DEPARTURETIME, F.TRAINTYPE, G.TQTY, C.ORDERSEQ, E.TRAINNO, D.CLASSNO
+		order by to_date(C.DEPARTUREDATE) asc
+    </select>
+    
+    
+    <!-- 1개의 취소내역(회원) 확인하는 리스트 -->
+    <resultMap type="java.util.HashMap" id="Mbr_BookingCancel">
+		
+    	<result property="PAYMENTCODE" 		column="paymentcode" 	javaType="String" />
+    	<result property="USERID" 			column="userid" 		javaType="String" />
+    	<result property="TOTALPRICE" 		column="totalprice" 	javaType="String" />
+    	<result property="TQTY" 			column="tqty" 			javaType="String" />
+    	<result property="PAYDATE" 			column="paydate" 		javaType="String" />
+    	<result property="DEPARTURE" 		column="departure" 		javaType="String" />
+    	<result property="ARRIVAL" 			column="arrival" 		javaType="String" />
+    	<result property="DEPARTUREDATE" 	column="departuredate" 	javaType="String" />
+    	<result property="DEPARTURETIME" 	column="departuretime" 	javaType="String" />
+    	<result property="TRAINTYPE" 		column="traintype" 		javaType="String" />
+    	<result property="ORDERSTATUS" 		column="orderstatus" 	javaType="String" />
+	    
+    </resultMap>
+    
+    <select id="getMbr_BookingCancelList" parameterType="String" resultMap="Mbr_BookingCancel" >
+		select a.paymentcode, a.userid, a.totalprice, G.TQTY, a.paydate, e.departure, e.arrival, 
+		C.DEPARTUREDATE, E.DEPARTURETIME, F.TRAINTYPE, C.ORDERSTATUS
+		from FINAL_paySUMMARY A join FINAL_payDETAIL B
+		on A.PAYMENTCODE = B.PAYMENTCODE
+		join FINAL_TICKETDETAIL C
+		on B.TICKETNO = C.TICKETNO
+		join FINAL_TICKETSUMMARY G
+		on G.ORDERSEQ = C.ORDERSEQ
+		join FINAL_SEAT D
+		on C.SEATSEQ = D.SEATSEQ
+		join FINAL_RUNINFO E
+		on D.RUNINFOSEQ = E.RUNINFOSEQ
+		join FINAL_TRAININFO F
+		on E.TRAINNO = F.TRAINNO
+		where a.userid = #{userid} and C.ORDERSTATUS = 0
+		group by a.paymentcode, a.userid, A.TOTALPRICE, A.payDATE, c.DEPARTUREDATE, e.departure, e.arrival, 
+		E.DEPARTURETIME, F.TRAINTYPE, G.TQTY, C.ORDERSTATUS
+		order by to_date(C.DEPARTUREDATE) asc
+    </select>
+    
+    
+    <!-- 1개의 취소내역(비회원) 확인하는 리스트 -->
+    <resultMap type="java.util.HashMap" id="Non_BookingCancel">
+		
+    	<result property="PAYMENTCODE" 		column="paymentcode" 	javaType="String" />
+    	<result property="USERID" 			column="userid" 		javaType="String" />
+    	<result property="TOTALPRICE" 		column="totalprice" 	javaType="String" />
+    	<result property="TQTY" 			column="tqty" 			javaType="String" />
+    	<result property="PAYDATE" 			column="paydate" 		javaType="String" />
+    	<result property="DEPARTURE" 		column="departure" 		javaType="String" />
+    	<result property="ARRIVAL" 			column="arrival" 		javaType="String" />
+    	<result property="DEPARTUREDATE" 	column="departuredate" 	javaType="String" />
+    	<result property="DEPARTURETIME" 	column="departuretime" 	javaType="String" />
+    	<result property="TRAINTYPE" 		column="traintype" 		javaType="String" />
+    	<result property="ORDERSTATUS" 		column="orderstatus" 	javaType="String" />
+	    
+    </resultMap>
+    
+    <select id="getNon_BookingCancelList" parameterType="String" resultMap="Non_BookingCancel" >
+		select a.paymentcode, a.userid, a.totalprice, G.TQTY, a.paydate, e.departure, e.arrival, C.DEPARTUREDATE, E.DEPARTURETIME, F.TRAINTYPE, C.ORDERSTATUS
+		from FINAL_paySUMMARY A join FINAL_payDETAIL B
+		on A.PAYMENTCODE = B.PAYMENTCODE
+		join FINAL_TICKETDETAIL C
+		on B.TICKETNO = C.TICKETNO
+		join FINAL_TICKETSUMMARY G
+		on G.ORDERSEQ = C.ORDERSEQ
+		join FINAL_SEAT D
+		on C.SEATSEQ = D.SEATSEQ
+		join FINAL_RUNINFO E
+		on D.RUNINFOSEQ = E.RUNINFOSEQ
+		join FINAL_TRAININFO F
+		on E.TRAINNO = F.TRAINNO
+		where a.nonno = #{nonno} and C.ORDERSTATUS = 0
+		group by a.paymentcode, a.userid, A.TOTALPRICE, A.payDATE, c.DEPARTUREDATE, e.departure, e.arrival, E.DEPARTURETIME, F.TRAINTYPE, G.TQTY, C.ORDERSTATUS
+		order by to_date(C.DEPARTUREDATE) asc
+    </select>
+    
+    
+ 	<!-- === 1개의 예약내역 수정하는 리스트 === -->
+    <resultMap type="java.util.HashMap" id="bookingModify">
+    
+    	<result property="PAYMENTCODE" 		column="paymentcode" 	javaType="String" />
+    	<result property="USERID" 			column="userid" 		javaType="String" />
+    	<result property="NONNO" 			column="nonno" 			javaType="String" />
+    	<result property="TOTALPRICE" 		column="totalprice" 	javaType="String" />
+    	<result property="TQTY" 			column="tqty" 			javaType="String" />
+    	<result property="PAYDATE" 			column="paydate" 		javaType="String" />
+    	<result property="DEPARTURE" 		column="departure" 		javaType="String" />
+    	<result property="ARRIVAL" 			column="arrival" 		javaType="String" />
+    	<result property="DEPARTUREDATE" 	column="departuredate" 	javaType="String" />
+    	<result property="DEPARTURETIME" 	column="departuretime" 	javaType="String" />
+    	<result property="TRAINTYPE" 		column="traintype" 		javaType="String" />
+    	<result property="TRAINNO" 			column="trainno" 		javaType="String" />
+    	<result property="CLASSNO" 			column="classno" 		javaType="String" />
+    	 	
+    </resultMap>
+    
+    <select id="getBookingModify" parameterType="java.util.HashMap" resultMap="bookingModify">   
+    	select a.paymentcode, a.userid, a.nonno, a.totalprice, G.TQTY, a.paydate, 
+    	e.departure, e.arrival, C.DEPARTUREDATE, E.DEPARTURETIME, F.TRAINTYPE, E.TRAINNO, D.CLASSNO
+		from FINAL_paySUMMARY A join FINAL_payDETAIL B
+		on A.PAYMENTCODE = B.PAYMENTCODE
+		join FINAL_TICKETDETAIL C
+		on B.TICKETNO = C.TICKETNO
+		join FINAL_TICKETSUMMARY G
+		on G.ORDERSEQ = C.ORDERSEQ
+		join FINAL_SEAT D
+		on C.SEATSEQ = D.SEATSEQ
+		join FINAL_RUNINFO E
+		on D.RUNINFOSEQ = E.RUNINFOSEQ
+		join FINAL_TRAININFO F
+		on E.TRAINNO = F.TRAINNO
+		where a.paymentcode = #{paymentcode}
+		group by a.paymentcode, a.userid, A.TOTALPRICE, A.payDATE, c.DEPARTUREDATE, a.nonno,
+		e.departure, e.arrival, E.DEPARTURETIME, F.TRAINTYPE, G.TQTY, E.TRAINNO, D.CLASSNO
+    </select>
+    
+  
+    <!-- === 열차종류 리스트 가져오기 === -->	
+	<select id="traintypeList" resultType="String">
+		select DISTINCT(traintype)
+		from final_traininfo
+	</select>
+	
+	
+	<!-- === 출발시간 리스트 가져오기 === -->	
+	<select id="departuretimeList" resultType="String">
+		select B.DEPARTURETIME
+		from FINAL_TRAININFO A join FINAL_RUNINFO B
+		on A.TRAINNO = B.TRAINNO
+		join FINAL_SEAT C
+		on B.RUNINFOSEQ = C.RUNINFOSEQ
+		join FINAL_TICKETDETAIL D
+		on C.SEATSEQ = D.SEATSEQ
+		where B.DEPARTURE = #{departure} and B.ARRIVAL = #{arrival} and D.DEPARTUREDATE = #{departuredate} and A.TRAINTYPE = #{traintype_pic}
+		group by B.DEPARTURETIME
+	</select>
+	
+	
+	<!-- === 배차시간 가져오기 === -->
+	<resultMap type="java.util.HashMap" id="getreSelectList">
+	
+    <result property="DEPARTURETIME" 		column="departuretime" 	javaType="String" />
+    
+    </resultMap>
+	
+	<select id="reSelectList" parameterType="java.util.HashMap" resultMap="getreSelectList">
+		select B.DEPARTURETIME
+		from FINAL_TRAININFO A join FINAL_RUNINFO B
+		on A.TRAINNO = B.TRAINNO
+		join FINAL_SEAT C
+		on B.RUNINFOSEQ = C.RUNINFOSEQ
+		join FINAL_TICKETDETAIL D
+		on C.SEATSEQ = D.SEATSEQ
+		where B.DEPARTURE = #{departure} and B.ARRIVAL = #{arrival} and D.DEPARTUREDATE = #{departuredate} and A.TRAINTYPE = #{traintype_pic} 
+		group by B.DEPARTURETIME
+	</select>
+	
+	<!-- 학생 Ageline 수 -->
+	<select id="getAgeline_Stu" resultType="String">
+		select count(*)
+		from FINAL_PAYSUMMARY A join FINAL_PAYDETAIL B
+		on A.PAYMENTCODE = B.PAYMENTCODE
+		join FINAL_TICKETDETAIL C
+		on B.TICKETNO = C.TICKETNO
+		where C.AGELINE = '중고생' and a.paymentcode = #{paymentcode}
+	</select>
+	
+	<!-- 일반 Ageline 수 -->
+	<select id="getAgeline_Com" resultType="String">
+		select count(*)
+		from FINAL_PAYSUMMARY A join FINAL_PAYDETAIL B
+		on A.PAYMENTCODE = B.PAYMENTCODE
+		join FINAL_TICKETDETAIL C
+		on B.TICKETNO = C.TICKETNO
+		where C.AGELINE = '일반' and a.paymentcode = #{paymentcode}
+	</select>
+	
+	<!-- 노약자 Ageline 수 -->
+	<select id="getAgeline_Old" resultType="String">
+		select count(*)
+		from FINAL_PAYSUMMARY A join FINAL_PAYDETAIL B
+		on A.PAYMENTCODE = B.PAYMENTCODE
+		join FINAL_TICKETDETAIL C
+		on B.TICKETNO = C.TICKETNO
+		where C.AGELINE = '노약자' and a.paymentcode = #{paymentcode}
+	</select>
+	
+	<!-- 남은 좌석 수 알아오기(전체좌석 - remainseatcnt) -->
+	<select id="remainseatcnt" parameterType="java.util.HashMap" resultType="int">
+		select count(*) as cnt
+		from final_runinfo A join final_seat B
+		on A.RUNINFOSEQ = B.RUNINFOSEQ
+		join FINAL_TICKETDETAIL C
+		on B.SEATSEQ = C.SEATSEQ
+		where a.trainno = #{retrainno} and a.departure = #{departure} and a.arrival = #{arrival}
+		and classno = #{classno} and departuredate = #{departuredate}
+	</select>
+	
+	<!-- 팔린 좌석 목록 가져오기 --> 
+	<select id="takenseatList" parameterType="java.util.HashMap" resultType="String">
+		select b.seatno as seatno
+		from final_ticketdetail A join final_seat B
+		on A.Seatseq = B.Seatseq
+		join final_runinfo C
+		on C.Runinfoseq = B.Runinfoseq
+		where orderstatus = 1 and departuredate = #{departuredate} and c.trainno = #{retrainno} 
+		and departure = #{departure} and arrival = #{arrival} and classno = #{classno}
+	</select>
+	
+	<!-- 다시예매할 그날의 열차번호 알아오기 --> 
+	<select id="getretrainno" parameterType="java.util.HashMap" resultType="String">
+		select A.TRAINNO
+		from FINAL_TRAININFO A join FINAL_RUNINFO B
+		on A.TRAINNO = B.TRAINNO
+		join FINAL_SEAT C
+		on B.RUNINFOSEQ = C.RUNINFOSEQ
+		join FINAL_TICKETDETAIL D
+		on C.SEATSEQ = D.SEATSEQ
+		where B.DEPARTURE = #{departure} and B.ARRIVAL = #{arrival} and B.DEPARTURETIME = #{departuretime} and D.DEPARTUREDATE = #{departuredate}
+		group by A.TRAINNO
+	</select>
+	
+	<!-- 가격 알아오기 -->
+	<resultMap type="java.util.HashMap" id="get_trainmap">
+	
+    <result property="ARRIVALTIME" 			column="arrivaltime" 		javaType="String" />
+    <result property="TURNAROUNDRATE" 		column="turnaroundrate" 	javaType="String" />
+    <result property="PERMINUTERATE" 		column="perminuterate" 		javaType="String" />
+    <result property="RATE" 				column="rate" 				javaType="String" />
+    
+    </resultMap>
+	
+	<select id="gettrainmap" parameterType="java.util.HashMap" resultMap="get_trainmap">
+		select arrivaltime, turnaroundrate, perminuterate, rate
+		from 
+		(
+			select trainno, case when traintype = 1 then 'KHX' else '무궁화' end as traintype, departure, departuretime, arrival, arrivaltime
+					        , case when (substr(turnaroundtime,1,2) >0) then hour*60+min else min end as turnaroundrate
+					        , perminuterate
+					        , case when (substr(turnaroundtime,1,2) >0) then hour*60+min else min end  * perminuterate as rate
+					from 
+					(
+					  select trainno, traintype, departure, departuretime, arrival, arrivaltime
+					          , turnaroundtime
+					          , hour, min
+					          , perminuterate
+					  from
+					    (
+					      select A.trainno, departure, departuretime, arrival, arrivaltime 
+					              , traintype, B.Perminuterate
+					              , to_number(arrivaltime)-to_number(departuretime) as turnaroundtime
+					              , substr(arrivaltime,1,2) - substr(departuretime,1,2) as hour
+					              , substr(arrivaltime,3,4) - substr(departuretime,3,4) as min
+					      from final_runinfo A join Final_Traininfo B
+					      on A.Trainno = B.Trainno
+					    )C
+					 )T
+					 where traintype = #{trainno}
+					 and departure = #{departure}
+					 and arrival = #{arrival}
+           and departuretime = #{departuretime}
+					 order by departuretime asc
+)
+	</select>
+	
+	
+	
+	<!-- 예매내역(회원) 취소하기_PAYSTATUS --> 
+	<update id="getMbr_BookingCancel1" parameterType="String">
+		update FINAL_PAYSUMMARY set PAYSTATUS = 0
+		where PAYMENTCODE = #{paymentcode}
+	</update>
+	
+	<!-- 예매내역(회원) 취소하기_ORDERSEQ --> 
+	<update id="getMbr_BookingCancel2" parameterType="String">
+		update FINAL_TICKETDETAIL set ORDERSTATUS = 0
+		where ORDERSEQ = #{orderseq}
+	</update>
+	
+	
+	<!-- 예매내역(비회원) 취소하기_PAYSTATUS --> 
+	<update id="getNon_BookingCancel1" parameterType="String">
+		update FINAL_PAYSUMMARY set PAYSTATUS = 0
+		where PAYMENTCODE = #{paymentcode}
+	</update>
+	
+	<!-- 예매내역(비회원) 취소하기_ORDERSEQ --> 
+	<update id="getNon_BookingCancel2" parameterType="String">
+		update FINAL_TICKETDETAIL set ORDERSTATUS = 0
+		where ORDERSEQ = #{orderseq}
+	</update>
+
+
+</mapper>

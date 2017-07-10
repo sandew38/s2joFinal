@@ -1,0 +1,805 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!-- #26. mapper 기본설정 -->
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd"> 
+
+<!-- #27. 루트엘리먼트 & 네임스페이스 설정(프로젝트 전체 내에서 고유해야 한다.) --> 
+<mapper namespace="jsb">
+
+
+	
+	<!-- 글추가하기(초기) --> 
+	<insert id="recommendAdd" parameterType="com.s2jo.khx.model.jsb.BoardVO">
+        insert into final_recommendBoard(seq, userid, name, subject, content, pw, readCount, regDate, status, groupno)
+		values(final_recommendBoard_Seq.nextval, #{userid}, #{name}, #{subject}, #{content}, 'not_use', default, default, default, 1) 
+	</insert>
+	
+		<!-- ==== 첨부파일이 있는 글쓰기(답변형 게시판) ===== 
+	--> 
+	<insert id="add_recWithFile" parameterType="com.s2jo.khx.model.jsb.BoardVO">
+     	
+		insert into final_recommendBoard(seq, userid, name, subject, content, pw, readCount, regDate, status, groupno,  fileName, orgFilename, fileSize)
+		values(final_recommendBoard_Seq.nextval,#{userid}, #{name}, #{subject}, #{content}, 'not_use', default, default, default, 1, #{fileName, jdbcType=VARCHAR}, #{orgFilename}, #{fileSize}) 
+	
+	</insert>	
+	
+	<!--   추천글리스트(페이징, 검색, 파일 첨부) 	 -->
+	<select id="recommendBoardList" resultType="com.s2jo.khx.model.jsb.BoardVO" parameterType="java.util.HashMap" >	
+		 select seq, userid, name, subject, readCount, regDate, commentCount  
+          , groupno, fk_seq, depthno
+          , fileName, orgFilename, fileSize
+	 from 
+	 (
+		select rownum as RNO
+		     , V.seq, V.userid, V.name, V.subject, V.content, V.readCount, V.regDate, V.commentCount
+		     , V.groupno, V.fk_seq, V.depthno
+		     , V.fileName, V.orgFilename, V.fileSize
+		from 
+		(
+		    select seq, userid, name 
+		         , case when length(subject) > 20 then substr(subject, 1, 18)||'..'
+		           else subject end as subject
+		         , content , readCount
+		         , to_char(regDate, 'yyyy-mm-dd hh24:mi:ss') as regDate
+		         , commentCount
+		         , groupno, fk_seq, depthno
+		         , fileName, orgFilename, fileSize
+		    from final_recommendBoard
+		    where status = 1
+		    <if test="colname != null and search != null">     
+		        and ${colname} like '%'|| #{search} ||'%'
+		    </if>
+		    start with fk_seq = 0
+    	    connect by prior seq = fk_seq
+		    order siblings by groupno desc, seq desc
+		) V
+	 ) T
+	 where T.RNO >= #{start} and T.RNO <![CDATA[<=]]> #{end}
+    </select> 
+    
+    <!-- =====  총 게시물 건수 구하기
+	             총 게시물 건수는 검색조건이 없을때와 있을때로 나뉘어진다. =====  -->
+	<select id="getRecTotalCount" parameterType="java.util.HashMap" resultType="int"> 
+		select count(*)
+		from final_recommendBoard
+		where status = 1
+		<if test="colname != null and search != null">
+			and ${colname} like '%' || #{search} || '%'
+		</if>
+	</select>   
+	
+	<!--  글 1개를 볼때 조회수(readCount) 1증가 시키기 ===== -->
+	<update id="setRecAddReadCount" parameterType="String">
+		update final_recommendBoard set readCount = readCount + 1 
+		where seq = #{seq}
+	</update>
+	
+	<!-- 글 1개 보여주기 -->
+	<select id="getRecommendView" parameterType="String" resultType="com.s2jo.khx.model.jsb.BoardVO">
+		select seq, userid, name, subject, content, readCount 
+		     , to_char(regDate, 'yyyy-mm-dd hh24:mi:ss') as regDate
+		     , groupno, fk_seq, depthno
+		     , fileName, orgFilename, fileSize
+		from final_recommendBoard
+		where status = 1 and seq = #{seq}
+	</select>
+
+	
+	<!-- =====  글 1개 수정하기 ===== -->
+	<update id="recUpdateContent" parameterType="java.util.HashMap">
+		update final_recommendBoard set subject = #{subject}
+		                         , content = #{content}
+	    where seq = #{seq}
+	</update>
+	
+	<!-- 파일추가하여 글 수정하기 -->
+	<insert id="Edit_recWithFile" parameterType="com.s2jo.khx.model.jsb.BoardVO">
+     	
+		update final_recommendBoard set subject = #{subject}
+		                         , content = #{content}
+		                         ,fileName = #{fileName, jdbcType=VARCHAR}
+		                         ,orgFilename = #{orgFilename}
+		                         ,fileSize = #{fileSize}
+	    where seq = #{seq}
+	</insert>	
+	
+	<!-- =====  글 1개 삭제하기 ===== -->
+	<update id="recDelContent" parameterType="java.util.HashMap">
+		update final_recommendBoard set status = 0
+	    where seq = #{seq}
+	</update>
+		
+	<!-- =====  댓글쓰기 ===== -->
+    <insert id="recAddComment" parameterType="com.s2jo.khx.model.jsb.CommentVO">
+    	insert into final_recommendComment(seq, userid, name, content, regDate, parentSeq, status)
+        values(final_recComment_Seq.nextval, #{userid}, #{name}, #{content}, default, #{parentSeq}, default)
+    </insert>
+    
+    
+     <!-- 댓글쓰기 이후에  commentCount 컬럼값 1증가 하기 ===== -->
+    <update id="recUpdateCommentCount" parameterType="String">
+    	update final_recommendBoard set commentCount = commentCount + 1 
+    	where seq = #{parentSeq}
+    </update>
+    
+    <!-- ===== 댓글내용 보여주기 ===== -->
+	<select id="recListComment" parameterType="String" resultType="com.s2jo.khx.model.jsb.CommentVO"> 
+		select seq, userid, name, content 
+		     , to_char(regDate, 'yyyy-mm-dd hh24:mi:ss') as regDate
+		     , parentSeq, status  
+		from final_recommendComment
+		where status = 1 and parentSeq = #{parentSeq}
+		order by seq desc
+	</select> 
+	
+	<!-- =====원게시글에 딸린 댓글이 있는지 없는지를 확인하기 ===== -->
+	<select id="recIsExistsComment" parameterType="java.util.HashMap" resultType="int">  
+		select count(*)
+		from final_recommendComment
+		where parentSeq = #{seq}
+	</select>
+    
+    <!-- ===== 원게시글에 딸린 댓글들 삭제하기 ===== -->	
+	<update id="recDelComment" parameterType="java.util.HashMap">
+		update final_recommendComment set status = 0
+		where parentSeq = #{seq}
+	</update>	
+	
+	
+	<!-- ===== Ajax 로 검색어 입력시 자동글 완성하기 6 ===== -->
+	<resultMap type="java.util.HashMap" id="getRecSearchWordMap">
+		<result property="SEARCHDATA" column="searchdata" javaType="String" />
+	</resultMap>
+	<select id="recSearchWordCompleteList" parameterType="java.util.HashMap" resultMap="getRecSearchWordMap"> 
+		<if test='colname.equals("subject")'>
+		    select subject as searchdata 
+		    from final_recommendBoard
+		    where lower(subject) like '%' || lower(#{search}) || '%'
+		</if>
+		
+		<if test='colname.equals("content")'>
+		    select substr(content, instr(content, #{search}, 1, 1), length(#{search}) + 5 )
+		           as searchdata    
+		    from final_recommendBoard
+		    where lower(content) like '%' || lower(#{search}) || '%'
+		</if>
+		
+		<if test='colname.equals("name")'>
+			select distinct name as searchdata 
+		    from final_recommendBoard
+		    where lower(name) like '%' || lower(#{search}) || '%'
+		</if> 
+		
+	</select>	
+	
+	<!-- =====  추천알람 데이터 추가 ===== -->
+    <insert id="rAlarmCommentAdd" parameterType="java.util.HashMap">
+    	 
+    	insert into r_alarm_comment(seq, userid, boardSeq, boardSubject, count)
+        values(r_alarm_comment_Seq.nextval, #{userid}, final_recommendBoard_Seq.nextval-1, #{boardSubject}, default )
+    </insert>
+    
+    <!-- =====  함께해요알람 데이터 추가 ===== -->
+    <insert id="tAlarmCommentAdd" parameterType="java.util.HashMap">
+    	 
+    	insert into t_alarm_comment(seq, userid, boardSeq, boardSubject, count)
+        values(r_alarm_comment_Seq.nextval, #{userid}, final_togetherBoard_Seq.nextval-1, #{boardSubject}, default )
+    </insert>
+    
+     <!-- =====  위험해요알람 데이터 추가 ===== -->
+    <insert id="wAlarmCommentAdd" parameterType="java.util.HashMap">
+    	 
+    	insert into w_alarm_comment(seq, userid, boardSeq, boardSubject, count)
+        values(w_alarm_comment_Seq.nextval, #{userid}, final_worryingBoard_Seq.nextval-1, #{boardSubject}, default )
+    </insert>
+    
+    <!-- =====  알람 boardseq update ===== -->
+    <insert id="rAlarmCommentUpdate" parameterType="com.s2jo.khx.model.jsb.AlarmVO">
+    	update r_alarm_comment set count = count + 1
+		where boardSeq = #{boardSeq}
+    </insert>
+    
+    <!-- =====  함께해요 알람 boardseq update ===== -->
+    <insert id="tAlarmCommentUpdate" parameterType="com.s2jo.khx.model.jsb.AlarmVO">
+    	update t_alarm_comment set count = count + 1
+		where boardSeq = #{boardSeq}
+    </insert>
+    
+     <!-- =====  함께해요 알람 boardseq update ===== -->
+    <insert id="wAlarmCommentUpdate" parameterType="com.s2jo.khx.model.jsb.AlarmVO">
+    	update w_alarm_comment set count = count + 1
+		where boardSeq = #{boardSeq}
+    </insert>
+    
+    
+    <!-- ============ rec알람보여주기=========== -->
+    <select id="rAlarmList" resultType="com.s2jo.khx.model.jsb.AlarmVO">
+		select userid, boardSeq, boardSubject, count
+		from r_alarm_comment	
+	</select>
+	
+	<!-- ============ tog알람보여주기=========== -->
+    <select id="tAlarmList" resultType="com.s2jo.khx.model.jsb.AlarmVO">
+		select userid, boardSeq, boardSubject, count
+		from t_alarm_comment	
+	</select>
+	
+	<!-- ============ wor알람보여주기=========== -->
+    <select id="wAlarmList" resultType="com.s2jo.khx.model.jsb.AlarmVO">
+		select userid, boardSeq, boardSubject, count
+		from w_alarm_comment	
+	</select>
+	
+	<!-- =====  알람 recboardseq update==>0 ===== -->
+    <insert id="rZeroAlarmCount" parameterType="java.util.HashMap">
+    	update r_alarm_comment set count = 0
+		where boardSeq = #{boardSeq} and userid = #{userid}
+    </insert>
+    
+    <!-- =====  알람 togetherboardseq update==>0 ===== -->
+    <insert id="tZeroAlarmCount" parameterType="java.util.HashMap">
+    	update t_alarm_comment set count = 0
+		where boardSeq = #{boardSeq} and userid = #{userid}
+    </insert>
+    
+      <!-- =====  알람 worryingboardseq update==>0 ===== -->
+    <insert id="wZeroAlarmCount" parameterType="java.util.HashMap">
+    	update w_alarm_comment set count = 0
+		where boardSeq = #{boardSeq} and userid = #{userid}
+    </insert>
+    
+    <!-- =====  recommend알람 데이터 추가 ===== -->
+    <insert id="resultAlarm"  parameterType="com.s2jo.khx.model.jsb.resultAlarmVO">  	 
+    	insert into alarm_result(userid)
+        select userid
+        from r_alarm_comment
+        minus
+        select userid
+        from alarm_result
+    </insert>
+    
+    <!-- =====  together알람 데이터 추가 ===== -->
+    <insert id="t_resultAlarm"  parameterType="com.s2jo.khx.model.jsb.resultAlarmVO">  	 
+    	insert into alarm_result(userid)
+        select userid
+        from t_alarm_comment
+        minus
+        select userid
+        from alarm_result
+    </insert>
+    
+    <!-- =====  worrying알람 데이터 추가 ===== -->
+    <insert id="w_resultAlarm"  parameterType="com.s2jo.khx.model.jsb.resultAlarmVO">  	 
+    	insert into alarm_result(userid)
+        select userid
+        from w_alarm_comment
+        minus
+        select userid
+        from alarm_result
+    </insert>
+    
+    <!-- resultAlarm 값 가져오기 -->
+    <select id="getResultAlarm" parameterType="String" resultType="com.s2jo.khx.model.jsb.resultAlarmVO">
+		select userid , resultCount
+		from alarm_result	
+		where userid = #{userid}
+	</select>
+    
+    
+ 	<!--    ==== resultCount 증감====  -->
+    <update id="resultAlarmCntUpdate" parameterType="String">
+		update alarm_result set resultCount = (select sum(count)
+                                               from r_alarm_comment
+                                               where userid = #{writer})
+		where userid= #{writer}
+	</update>
+	
+	<!--    ==== t_resultCount 증감====  -->
+    <update id="t_resultAlarmCntUpdate" parameterType="String">
+		update alarm_result set resultCount = (select sum(count)
+                                               from t_alarm_comment
+                                               where userid = #{writer})
+		where userid= #{writer}
+	</update>
+	
+	<!--    ==== w_resultCount 증감====  -->
+    <update id="w_resultAlarmCntUpdate" parameterType="String">
+		update alarm_result set resultCount = (select sum(count)
+                                               from w_alarm_comment
+                                               where userid = #{writer})
+		where userid= #{writer}
+	</update>
+	
+	
+	<!-- resultAlarm 값 가져오기 -->
+    <select id="rBoardList"  resultType="com.s2jo.khx.model.jsb.BoardVO">
+		select *
+		from final_recommendBoard
+	</select>
+    
+
+	
+	
+	<!-- ======================================together=========================================== -->
+	<!--   추천글리스트(페이징, 검색, 파일 첨부) 	 -->
+	<select id="togetherBoardList" resultType="com.s2jo.khx.model.jsb.BoardVO" parameterType="java.util.HashMap" >	
+		 select seq, userid, name, subject, readCount, regDate, commentCount  
+          , groupno, fk_seq, depthno
+          , fileName, orgFilename, fileSize
+	 from 
+	 (
+		select rownum as RNO
+		     , V.seq, V.userid, V.name, V.subject, V.content, V.readCount, V.regDate, V.commentCount
+		     , V.groupno, V.fk_seq, V.depthno
+		     , V.fileName, V.orgFilename, V.fileSize
+		from 
+		(
+		    select seq, userid, name 
+		         , case when length(subject) > 20 then substr(subject, 1, 18)||'..'
+		           else subject end as subject
+		         , content , readCount
+		         , to_char(regDate, 'yyyy-mm-dd hh24:mi:ss') as regDate
+		         , commentCount
+		         , groupno, fk_seq, depthno
+		         , fileName, orgFilename, fileSize
+		    from final_togetherBoard
+		    where status = 1
+		    <if test="colname != null and search != null">     
+		        and ${colname} like '%'|| #{search} ||'%'
+		    </if>
+		    start with fk_seq = 0
+    	    connect by prior seq = fk_seq
+		    order siblings by groupno desc, seq desc
+		) V
+	 ) T
+	 where T.RNO >= #{start} and T.RNO <![CDATA[<=]]> #{end}
+    </select> 
+    
+     <!-- =====  총 게시물 건수 구하기
+	             총 게시물 건수는 검색조건이 없을때와 있을때로 나뉘어진다. =====  -->
+	<select id="getTogTotalCount" parameterType="java.util.HashMap" resultType="int"> 
+		select count(*)
+		from final_togetherBoard
+		where status = 1
+		<if test="colname != null and search != null">
+			and ${colname} like '%' || #{search} || '%'
+		</if>
+	</select> 
+	
+	<!-- 글추가하기 --> 
+	<insert id="togetherAdd" parameterType="com.s2jo.khx.model.jsb.BoardVO">
+        insert into final_togetherBoard(seq, userid, name, subject, content, pw, readCount, regDate, status, groupno)
+		values(final_togetherBoard_Seq.nextval, #{userid}, #{name}, #{subject}, #{content}, 'not_use', default, default, default, 1) 
+	</insert>
+	
+		<!-- ==== 첨부파일이 있는 글쓰기(답변형 게시판) ===== 
+	--> 
+	<insert id="add_togWithFile" parameterType="com.s2jo.khx.model.jsb.BoardVO">
+     	
+		insert into final_togetherBoard(seq, userid, name, subject, content, pw, readCount, regDate, status, groupno,  fileName, orgFilename, fileSize)
+		values(final_togetherBoard_Seq.nextval,#{userid}, #{name}, #{subject}, #{content}, 'not_use', default, default, default, 1, #{fileName, jdbcType=VARCHAR}, #{orgFilename}, #{fileSize}) 
+	</insert>
+	
+	<!--  글 1개를 볼때 조회수(readCount) 1증가 시키기 ===== -->
+	<update id="setTogAddReadCount" parameterType="String">
+		update final_togetherBoard set readCount = readCount + 1 
+		where seq = #{seq}
+	</update>
+	
+	<!-- 글 1개 보여주기 -->
+	<select id="getTogetherView" parameterType="String" resultType="com.s2jo.khx.model.jsb.BoardVO">
+		select seq, userid, name, subject, content, readCount 
+		     , to_char(regDate, 'yyyy-mm-dd hh24:mi:ss') as regDate
+		     , groupno, fk_seq, depthno
+		     , fileName, orgFilename, fileSize
+		from final_togetherBoard
+		where status = 1 and seq = #{seq}
+	</select>
+	
+	 <!-- ===== 댓글내용 보여주기 ===== -->
+	<select id="togListComment" parameterType="String" resultType="com.s2jo.khx.model.jsb.CommentVO"> 
+		select seq, userid, name, content 
+		     , to_char(regDate, 'yyyy-mm-dd hh24:mi:ss') as regDate
+		     , parentSeq, status  
+		from final_togetherComment
+		where status = 1 and parentSeq = #{parentSeq}
+		order by seq desc
+	</select> 
+	
+		<!-- =====  글 1개 수정하기 ===== -->
+	<update id="togUpdateContent" parameterType="java.util.HashMap">
+		update final_togetherBoard set subject = #{subject}
+		                         , content = #{content}
+	    where seq = #{seq}
+	</update>
+	
+	<!-- 파일추가하여 글 수정하기 -->
+	<insert id="Edit_togWithFile" parameterType="com.s2jo.khx.model.jsb.BoardVO">
+     	
+		update final_togetherBoard set subject = #{subject}
+		                         , content = #{content}
+		                         ,fileName = #{fileName, jdbcType=VARCHAR}
+		                         ,orgFilename = #{orgFilename}
+		                         ,fileSize = #{fileSize}
+	    where seq = #{seq}
+	</insert>	
+	
+	<!-- 댓글이 있는지 확인 -->
+	<select id="togIsExistsComment" parameterType="java.util.HashMap" resultType="int">  
+		select count(*)
+		from final_togetherComment
+		where parentSeq = #{seq}
+	</select>
+	
+	<!-- =====  글 1개 삭제하기 ===== -->
+	<update id="togDelContent" parameterType="java.util.HashMap">
+		update final_togetherBoard set status = 0
+	    where seq = #{seq}
+	</update>
+	
+	 <!-- ===== 원게시글에 딸린 댓글들 삭제하기 ===== -->	
+	<update id="togDelComment" parameterType="java.util.HashMap">
+		update final_togetherComment set status = 0
+		where parentSeq = #{seq}
+	</update>	
+	
+	<!-- =====  댓글쓰기 ===== -->
+    <insert id="togAddComment" parameterType="com.s2jo.khx.model.jsb.CommentVO">
+    	insert into final_togetherComment(seq, userid, name, content, regDate, parentSeq, status)
+        values(final_togeComment_Seq.nextval, #{userid}, #{name}, #{content}, default, #{parentSeq}, default)
+    </insert>
+    
+      <!-- 댓글쓰기 이후에  commentCount 컬럼값 1증가 하기 ===== -->
+    <update id="togUpdateCommentCount" parameterType="String">
+    	update final_togetherBoard set commentCount = commentCount + 1 
+    	where seq = #{parentSeq}
+    </update>
+	
+	<!-- ===== Ajax 로 검색어 입력시 자동글 완성하기 6 ===== -->
+	<resultMap type="java.util.HashMap" id="getTogSearchWordMap">
+		<result property="SEARCHDATA" column="searchdata" javaType="String" />
+	</resultMap>
+	<select id="togSearchWordCompleteList" parameterType="java.util.HashMap" resultMap="getTogSearchWordMap"> 
+		<if test='colname.equals("subject")'>
+		    select subject as searchdata 
+		    from final_togetherBoard
+		    where lower(subject) like '%' || lower(#{search}) || '%'
+		</if>
+		
+		<if test='colname.equals("content")'>
+		    select substr(content, instr(content, #{search}, 1, 1), length(#{search}) + 5 )
+		           as searchdata    
+		    from final_togetherBoard
+		    where lower(content) like '%' || lower(#{search}) || '%'
+		</if>
+		
+		<if test='colname.equals("name")'>
+			select distinct name as searchdata 
+		    from final_togetherBoard
+		    where lower(name) like '%' || lower(#{search}) || '%'
+		</if> 
+		
+	</select>	
+	
+	
+	<!--  =====================================Worrying============================================ -->
+	<!--   추천글리스트(페이징, 검색, 파일 첨부) 	 -->
+	<select id="worryingBoardList" resultType="com.s2jo.khx.model.jsb.BoardVO" parameterType="java.util.HashMap" >	
+		 select seq, userid, name, subject, readCount, regDate, commentCount  
+          , groupno, fk_seq, depthno
+          , fileName, orgFilename, fileSize
+	 from 
+	 (
+		select rownum as RNO
+		     , V.seq, V.userid, V.name, V.subject, V.content, V.readCount, V.regDate, V.commentCount
+		     , V.groupno, V.fk_seq, V.depthno
+		     , V.fileName, V.orgFilename, V.fileSize
+		from 
+		(
+		    select seq, userid, name 
+		         , case when length(subject) > 20 then substr(subject, 1, 18)||'..'
+		           else subject end as subject
+		         , content , readCount
+		         , to_char(regDate, 'yyyy-mm-dd hh24:mi:ss') as regDate
+		         , commentCount
+		         , groupno, fk_seq, depthno
+		         , fileName, orgFilename, fileSize
+		    from final_worryingBoard
+		    where status = 1
+		    <if test="colname != null and search != null">     
+		        and ${colname} like '%'|| #{search} ||'%'
+		    </if>
+		    start with fk_seq = 0
+    	    connect by prior seq = fk_seq
+		    order siblings by groupno desc, seq desc
+		) V
+	 ) T
+	 where T.RNO >= #{start} and T.RNO <![CDATA[<=]]> #{end}
+    </select> 
+    
+    <!-- =====  총 게시물 건수 구하기
+	             총 게시물 건수는 검색조건이 없을때와 있을때로 나뉘어진다. =====  -->
+	<select id="getWorTotalCount" parameterType="java.util.HashMap" resultType="int"> 
+		select count(*)
+		from final_worryingBoard
+		where status = 1
+		<if test="colname != null and search != null">
+			and ${colname} like '%' || #{search} || '%'
+		</if>
+	</select> 
+	
+	<!-- 글쓰기 -->
+	<insert id="worryingAdd" parameterType="com.s2jo.khx.model.jsb.BoardVO">
+        insert into final_worryingBoard(seq, userid, name, subject, content, pw, readCount, regDate, status, groupno)
+		values(final_worryingBoard_Seq.nextval, #{userid}, #{name}, #{subject}, #{content}, 'not_use', default, default, default, 1) 
+	</insert>
+	
+		<!-- ==== 첨부파일이 있는 글쓰기(답변형 게시판) ===== 
+	--> 
+	<insert id="add_worWithFile" parameterType="com.s2jo.khx.model.jsb.BoardVO">
+     	
+		insert into final_worryingBoard(seq, userid, name, subject, content, pw, readCount, regDate, status, groupno,  fileName, orgFilename, fileSize)
+		values(final_worryingBoard_Seq.nextval,#{userid}, #{name}, #{subject}, #{content}, 'not_use', default, default, default, 1, #{fileName, jdbcType=VARCHAR}, #{orgFilename}, #{fileSize}) 
+	</insert>
+	
+	<!--  글 1개를 볼때 조회수(readCount) 1증가 시키기 ===== -->
+	<update id="setWorAddReadCount" parameterType="String">
+		update final_worryingBoard set readCount = readCount + 1 
+		where seq = #{seq}
+	</update>
+	
+	<!-- 글 1개 보여주기 -->
+	<select id="getWorryingView" parameterType="String" resultType="com.s2jo.khx.model.jsb.BoardVO">
+		select seq, userid, name, subject, content, readCount 
+		     , to_char(regDate, 'yyyy-mm-dd hh24:mi:ss') as regDate
+		     , groupno, fk_seq, depthno
+		     , fileName, orgFilename, fileSize
+		from final_worryingBoard
+		where status = 1 and seq = #{seq}
+	</select>
+	
+	<!-- =====  글 1개 수정하기 ===== -->
+	<update id="worUpdateContent" parameterType="java.util.HashMap">
+		update final_worryingBoard set subject = #{subject}
+		                         , content = #{content}
+	    where seq = #{seq}
+	</update>
+	
+	<!-- 파일추가하여 글 수정하기 -->
+	<insert id="Edit_worWithFile" parameterType="com.s2jo.khx.model.jsb.BoardVO">
+     	
+		update final_worryingBoard set subject = #{subject}
+		                         , content = #{content}
+		                         ,fileName = #{fileName, jdbcType=VARCHAR}
+		                         ,orgFilename = #{orgFilename}
+		                         ,fileSize = #{fileSize}
+	    where seq = #{seq}
+	</insert>
+	
+	<!-- =====원게시글에 딸린 댓글이 있는지 없는지를 확인하기 ===== -->
+	<select id="worIsExistsComment" parameterType="java.util.HashMap" resultType="int">  
+		select count(*)
+		from final_worryingComment
+		where parentSeq = #{seq}
+	</select>
+	
+	<!-- =====  글 1개 삭제하기 ===== -->
+	<update id="worDelContent" parameterType="java.util.HashMap">
+		update final_worryingBoard set status = 0
+	    where seq = #{seq}
+	</update>
+	
+	<!-- ===== 원게시글에 딸린 댓글들 삭제하기 ===== -->	
+	<update id="worDelComment" parameterType="java.util.HashMap">
+		update final_worryingComment set status = 0
+		where parentSeq = #{seq}
+	</update>	
+	
+	<!-- =====  댓글쓰기 ===== -->
+    <insert id="worAddComment" parameterType="com.s2jo.khx.model.jsb.CommentVO">
+    	insert into final_worryingComment(seq, userid, name, content, regDate, parentSeq, status)
+        values(final_worComment_Seq.nextval, #{userid}, #{name}, #{content}, default, #{parentSeq}, default)
+    </insert>
+    
+    <!-- ===== 댓글내용 보여주기 ===== -->
+	<select id="worListComment" parameterType="String" resultType="com.s2jo.khx.model.jsb.CommentVO"> 
+		select seq, userid, name, content 
+		     , to_char(regDate, 'yyyy-mm-dd hh24:mi:ss') as regDate
+		     , parentSeq, status  
+		from final_worryingComment
+		where status = 1 and parentSeq = #{parentSeq}
+		order by seq desc
+	</select> 
+	
+	  <!-- 댓글쓰기 이후에  commentCount 컬럼값 1증가 하기 ===== -->
+    <update id="worUpdateCommentCount" parameterType="String">
+    	update final_worryingBoard set commentCount = commentCount + 1 
+    	where seq = #{parentSeq}
+    </update>
+    
+    <!-- ===== Ajax 로 검색어 입력시 자동글 완성하기 6 ===== -->
+	<resultMap type="java.util.HashMap" id="getWorSearchWordMap">
+		<result property="SEARCHDATA" column="searchdata" javaType="String" />
+	</resultMap>
+	<select id="worSearchWordCompleteList" parameterType="java.util.HashMap" resultMap="getWorSearchWordMap"> 
+		<if test='colname.equals("subject")'>
+		    select subject as searchdata 
+		    from final_worryingBoard
+		    where lower(subject) like '%' || lower(#{search}) || '%'
+		</if>
+		
+		<if test='colname.equals("content")'>
+		    select substr(content, instr(content, #{search}, 1, 1), length(#{search}) + 5 )
+		           as searchdata    
+		    from final_worryingBoard
+		    where lower(content) like '%' || lower(#{search}) || '%'
+		</if>
+		
+		<if test='colname.equals("name")'>
+			select distinct name as searchdata 
+		    from final_worryingBoard
+		    where lower(name) like '%' || lower(#{search}) || '%'
+		</if> 
+		
+	</select>
+	
+	
+	<!-- 이전글 다음글 -->	
+	<!-- 이전글/다음글 가져오기 -->
+	 <resultMap type="java.util.HashMap" id="getPrevNextMap">
+		<result property="SEQ" 				column="seq" 			javaType="String" />
+		<result property="SUBJECT" 			column="subject" 		javaType="String" />
+		<result property="NEXT_SEQ"	 			column="next_seq" 			javaType="String" />
+ 		<result property="NEXT_SUBJECT" 		column="next_subject" 		javaType="String" />
+ 		<result property="NEXT_USERID" 		column="next_userid" 		javaType="String" />
+ 		<result property="PRE_SEQ" 			column="pre_seq" 			javaType="String" />
+ 		<result property="PRE_SUBJECT" 		column="pre_subject" 		javaType="String" />
+ 		<result property="PRE_USERID" 		column="pre_userid" 		javaType="String" />
+	</resultMap>
+	<select id="getPrevNext" parameterType="java.util.HashMap" resultMap="getPrevNextMap">
+		select seq, subject, next_seq, next_subject, next_userid, pre_seq, pre_subject, pre_userid 
+			from
+			( 
+			  select seq, subject,
+			        lead(seq,1) over (order by seq) next_seq,
+			        lead(subject,1,'다음글이 없습니다.') over (order by seq) next_subject,
+			        lead(userid,1,'작성자') over (order by seq) next_userid,
+			        lag(seq,1) over (order by seq) pre_seq,
+			        lag(subject,1,'이전글이 없습니다.') over (order by seq) pre_subject,
+			        lag(userid,1,'작성자') over (order by seq) pre_userid
+			  from final_recommendBoard
+			  where status = 1  
+			)
+		where seq = #{seq, jdbcType=INTEGER}
+	</select>
+    
+    
+    
+    <!-- 과거 추천 여부 알아오기 -->
+	<select id="rchkLike" parameterType="java.util.HashMap" resultType="int">
+		 select count(*)
+		 from recommend_like
+		 where userid = #{userid, jdbcType=VARCHAR} and rseq = #{seq, jdbcType=VARCHAR}
+	</select>
+	
+	<!-- 추천게시판 추천하기 -->
+	<insert id="rinsertLike" parameterType="java.util.HashMap">
+		insert into recommend_like(userid, rseq)
+		values(#{userid, jdbcType=VARCHAR}, #{seq, jdbcType=INTEGER}) 
+	</insert>
+    
+    <!-- 과거 비추천 여부 알아오기 -->
+	<select id="rChkDislike" parameterType="java.util.HashMap" resultType="int">
+		 select count(*)
+		 from recommend_dislike
+		 where userid = #{userid, jdbcType=VARCHAR} and rseq = #{seq, jdbcType=VARCHAR}
+	</select>
+	
+	<!--  비추천하기 -->
+	<insert id="rInsertDislike" parameterType="java.util.HashMap">
+		insert into recommend_dislike(userid, rseq)
+		values(#{userid, jdbcType=VARCHAR}, #{seq, jdbcType=INTEGER}) 
+	</insert>
+	
+	 <!-- 추천수 알아오기 -->
+	<select id="getrLikeCnt" parameterType="String" resultType="String">
+		 select count(*)
+		 from recommend_like
+		 where rseq = #{seq, jdbcType=INTEGER}
+	</select>
+	
+	<!-- 비추천수 알아오기 -->
+	<select id="getrDislikeCnt" parameterType="String" resultType="String">
+		 select count(*)
+		 from recommend_dislike
+		 where rseq = #{seq, jdbcType=INTEGER}
+	</select>
+	
+	<!-- 함께해요 추천 -->
+	 <!-- 함께해요 과거 추천 여부 알아오기 -->
+	<select id="tChkLike" parameterType="java.util.HashMap" resultType="int">
+		 select count(*)
+		 from together_like
+		 where userid = #{userid, jdbcType=VARCHAR} and rseq = #{seq, jdbcType=VARCHAR}
+	</select>
+	
+	<!-- 함께해요게시판 추천하기 -->
+	<insert id="tInsertLike" parameterType="java.util.HashMap">
+		insert into together_like(userid, rseq)
+		values(#{userid, jdbcType=VARCHAR}, #{seq, jdbcType=INTEGER}) 
+	</insert>
+	
+	
+	<!-- 과거 비추천 여부 알아오기 -->
+	<select id="tChkDislike" parameterType="java.util.HashMap" resultType="int">
+		 select count(*)
+		 from together_dislike
+		 where userid = #{userid, jdbcType=VARCHAR} and rseq = #{seq, jdbcType=VARCHAR}
+	</select>
+	
+	<!--  비추천하기 -->
+	<insert id="tInsertDislike" parameterType="java.util.HashMap">
+		insert into together_dislike(userid, rseq)
+		values(#{userid, jdbcType=VARCHAR}, #{seq, jdbcType=INTEGER}) 
+	</insert>
+	
+	 <!-- 함께해요 추천수 알아오기 -->
+	<select id="gettLikeCnt" parameterType="String" resultType="String">
+		 select count(*)
+		 from together_like
+		 where rseq = #{seq, jdbcType=INTEGER}
+	</select>
+	
+	<!-- 함께해요 비추천수 알아오기 -->
+	<select id="gettDislikeCnt" parameterType="String" resultType="String">
+		 select count(*)
+		 from together_dislike
+		 where rseq = #{seq, jdbcType=INTEGER}
+	</select>
+	
+	
+	<!-- 위험해요 과거 추천 여부 알아오기 -->
+	<select id="wChkLike" parameterType="java.util.HashMap" resultType="int">
+		 select count(*)
+		 from worrying_like
+		 where userid = #{userid, jdbcType=VARCHAR} and rseq = #{seq, jdbcType=VARCHAR}
+	</select>
+	
+	<!-- 위험해요게시판 추천하기 -->
+	<insert id="wInsertLike" parameterType="java.util.HashMap">
+		insert into worrying_like(userid, rseq)
+		values(#{userid, jdbcType=VARCHAR}, #{seq, jdbcType=INTEGER}) 
+	</insert>
+	
+	<!-- 위험해요 과거 비추천 여부 알아오기 -->
+	<select id="wChkDislike" parameterType="java.util.HashMap" resultType="int">
+		 select count(*)
+		 from worrying_dislike
+		 where userid = #{userid, jdbcType=VARCHAR} and rseq = #{seq, jdbcType=VARCHAR}
+	</select>
+	
+	<!-- 위험해요 비추천하기 -->
+	<insert id="wInsertDislike" parameterType="java.util.HashMap">
+		insert into worrying_dislike(userid, rseq)
+		values(#{userid, jdbcType=VARCHAR}, #{seq, jdbcType=INTEGER}) 
+	</insert>
+	
+	<!-- 함께해요 추천수 알아오기 -->
+	<select id="getwLikeCnt" parameterType="String" resultType="String">
+		 select count(*)
+		 from worrying_like
+		 where rseq = #{seq, jdbcType=INTEGER}
+		 
+	</select>
+	
+	<!-- 함께해요 비추천수 알아오기 -->
+	<select id="getwDislikeCnt" parameterType="String" resultType="String">
+		 select count(*)
+		 from worrying_dislike
+		 where rseq = #{seq, jdbcType=INTEGER}
+	</select>
+	
+	
+    
+    
+</mapper>

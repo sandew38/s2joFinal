@@ -1,0 +1,303 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!-- mapper 기본설정 -->
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd"> 
+
+<!-- 루트엘리먼트 & 네임스페이스 설정(프로젝트 전체 내에서 고유해야 한다.) --> 
+<mapper namespace="hjs">
+
+
+	<!-- 기차역목록 정보 가져오기 -->
+	 <resultMap type="java.util.HashMap" id="getStationListMap">
+		<result property="TRAINTYPE" 			column="traintype" 			javaType="String" />
+		<result property="STATION"	 			column="station" 			javaType="String" />
+ 		<result property="SIDO" 				column="sido" 				javaType="String" />
+ 		<result property="GUGUN" 				column="gugun" 				javaType="String" />
+	</resultMap>
+	<select id="getStationList" resultMap="getStationListMap">
+		select traintype, station, sido, gugun
+		from final_station
+	</select>
+    
+    
+    <!-- 기차역 이용후기 쓰기 (첨부파일 x) -->
+   	<insert id="addReview" parameterType="com.s2jo.khx.model.hjs.reviewBoardVO">
+        <if test='fk_seq.equals("")'>	
+   		insert into final_stationBoard(seq, station, userid, name, subject, content, pw, readCount, recCount, regDate, status, groupno, fk_seq, depthno)
+		values(final_stationBoardSeq.nextval, #{station}, #{userid}, #{name}, #{subject}, #{content}, #{pw}, default, default, default, default, final_stationGroupnoSeq.nextval, default, default) 
+		</if>
+		<if test='!fk_seq.equals("")'>
+   		insert into final_stationBoard(seq, station, userid, name, subject, content, pw, readCount, recCount, regDate, status, groupno, fk_seq, depthno)
+		values(final_stationBoardSeq.nextval, #{station}, #{userid}, #{name}, #{subject}, #{content}, #{pw}, default, default, default, default, #{groupno}, #{fk_seq}, #{depthno}+1) 
+		</if>
+	</insert>
+
+   
+    <!-- 기차역 이용후기 쓰기 (첨부파일 o) -->
+   	<insert id="addReview_withFile" parameterType="com.s2jo.khx.model.hjs.reviewBoardVO">
+		<if test='fk_seq.equals("")'>	
+ 		insert into final_stationBoard(seq, station, userid, name, subject, content, pw, readCount, recCount, regDate, status, groupno, fk_seq, depthno, fileName, orgFilename, fileSize, thumbnailFileName)
+		values(final_stationBoardSeq.nextval, #{station}, #{userid}, #{name}, #{subject}, #{content}, #{pw}, default, default, default, default, final_stationGroupnoSeq.nextval, default, default, #{fileName, jdbcType=VARCHAR}, #{orgFilename}, #{fileSize}, #{thumbnailFileName}) 
+		</if>
+		<if test='!fk_seq.equals("")'>
+ 		insert into final_stationBoard(seq, station, userid, name, subject, content, pw, readCount, recCount, regDate, status, groupno, fk_seq, depthno, fileName, orgFilename, fileSize, thumbnailFileName)
+		values(final_stationBoardSeq.nextval, #{station}, #{userid}, #{name}, #{subject}, #{content}, #{pw}, default, default, default, default,#{groupno}, #{fk_seq}, #{depthno}+1, #{fileName, jdbcType=VARCHAR}, #{orgFilename}, #{fileSize}, #{thumbnailFileName}) 
+		</if>
+	</insert>
+	
+   
+    <!-- 기차역 이용후기 목록 가져오기 -->
+   	<select id="getRboardList" resultType="com.s2jo.khx.model.hjs.reviewBoardVO" parameterType="java.util.HashMap">
+    select seq, userid, name, subject, readCount, regDate, commentCount  
+          , groupno, fk_seq, depthno
+          , fileName, orgFilename, fileSize
+	   from 
+	   (		
+		select rownum as RNO
+		     , V.seq, V.userid, V.name, V.subject, V.content, V.readCount, V.regDate, V.commentCount
+		     , V.groupno, V.fk_seq, V.depthno
+		     , V.fileName, V.orgFilename, V.fileSize
+		  from 
+		   ( 
+		    select   seq, userid, name 
+				         , case when length(subject) > 20 then substr(subject, 1, 18)||'..'
+				           else subject end as subject
+				         , content , readCount
+				         , case when to_char(regDate, 'mm/dd') = to_char(sysdate, 'mm/dd') 
+		                    then to_char(regDate, 'hh24:mm')
+		                    else to_char(regDate, 'mm/dd') end as regDate
+				         , commentCount
+				         , groupno, fk_seq, depthno
+				         , fileName, orgFilename, fileSize
+		     from final_stationBoard
+		     where status = 1
+		     	and station = #{station}
+   		    <if test="colname != null and search != null">     
+		        and ${colname} like '%'|| #{search} ||'%'
+		    </if>
+		     start with depthno = 0
+		     connect by prior seq = fk_seq
+		     order siblings by groupno desc
+		   ) V
+		 ) T
+		 where T.RNO >= #{start} and T.RNO <![CDATA[<=]]> #{end}
+	</select> 
+	
+	
+	<!-- 조회수 1증가 -->
+	<update id="setAddReadCount" parameterType="String">
+		update final_stationBoard set readCount = readCount + 1 
+		where seq = #{seq}
+	</update>
+	
+	
+	<!-- 글 1개 보여주기 -->
+	<select id="getView" parameterType="String" resultType="com.s2jo.khx.model.hjs.reviewBoardVO">
+		select seq, userid, name, subject, content, readCount, recCount
+		     , to_char(regDate, 'yyyy-mm-dd hh24:mi:ss') as regDate
+		     , groupno, fk_seq, depthno
+		     , fileName, orgFilename, fileSize, thumbnailFileName
+		from final_stationBoard
+		where status = 1 and seq = #{seq}
+	</select>
+	
+	
+	<!-- 글수정 및 삭제시 암호일치 여부 알아오기 -->
+	<select id="checkPW" parameterType="java.util.HashMap" resultType="int">
+		select count(*)
+		from final_stationBoard
+		where seq = #{seq} and pw = #{pw}
+	</select>
+	
+		
+	<!-- 글 1개 수정하기 -->
+	<update id="updateContent" parameterType="java.util.HashMap">
+		update final_stationBoard set subject = #{subject}
+		                            , content = #{content}
+	    where seq = #{seq}
+	</update>
+	
+	
+	<!-- 글 1개 삭제하기 -->
+	<update id="delContent" parameterType="java.util.HashMap">
+		update final_stationBoard set status = 0
+	    where seq = #{seq}
+	</update>
+	
+
+	<!-- 댓글쓰기 -->
+    <insert id="addReviewComment" parameterType="com.s2jo.khx.model.hjs.reviewCommentVO">
+    	insert into final_stationComment(seq, userid, name, content, regDate, parentSeq, status)
+        values(final_stationCommentSeq.nextval, #{userid}, #{name}, #{content}, default, #{parentSeq}, default)
+    </insert>
+    
+    
+    <!-- 댓글쓰기 이후에 tblBoard 테이블의 commentCount 컬럼값 1증가 하기 -->
+    <update id="updateCommentCount" parameterType="String">
+    	update final_stationBoard set commentCount = commentCount + 1 
+    	where seq = #{parentSeq}
+    </update>
+
+
+	<!-- 댓글내용 보여주기 -->
+	<select id="listComment" parameterType="String" resultType="com.s2jo.khx.model.hjs.reviewCommentVO"> 
+		select seq, userid, name, content 
+		     , to_char(regDate, 'yyyy-mm-dd hh24:mi:ss') as regDate
+		     , parentSeq, status  
+		from final_stationComment
+		where status = 1 and parentSeq = #{parentSeq}
+		order by seq desc
+	</select>  
+	
+	
+	<!-- 총 게시물 건수 구하기
+             총 게시물 건수는 검색조건이 없을때와 있을때로 나뉘어진다.
+	--> 
+	<select id="getTotalCount" parameterType="java.util.HashMap" resultType="int"> 
+		select count(*)
+		from final_stationBoard
+		where status = 1
+		<if test="colname != null and search != null">
+			and ${colname} like '%' || #{search} || '%'
+		</if>
+	</select>   
+	
+	
+	<!-- 원게시글에 딸린 댓글이 있는지 없는지를 확인하기 -->
+	<select id="isExistsComment" parameterType="java.util.HashMap" resultType="int">  
+		select count(*)
+		from final_stationComment
+		where parentSeq = #{seq}
+	</select>
+	
+	
+	<!-- 원게시글에 딸린 댓글들 삭제하기 -->	
+	<update id="delComment" parameterType="java.util.HashMap">
+		update final_stationComment set status = 0
+		where parentSeq = #{seq}
+	</update>	
+	
+	
+	<!-- 관광지 리뷰 추천하기 -->
+	<insert id="insertLike" parameterType="java.util.HashMap">
+		insert into final_reviewLike(likeno, userid, seq)
+		values(final_reviewLikeSeq.nextval, #{userid, jdbcType=VARCHAR}, #{seq, jdbcType=INTEGER}) 
+	</insert>
+	
+		
+	<!-- 관광지 리뷰 비추천하기 -->
+	<insert id="insertDislike" parameterType="java.util.HashMap">
+		insert into final_reviewDislike(dislikeno, userid, seq)
+		values(final_reviewDislikeSeq.nextval, #{userid, jdbcType=VARCHAR}, #{seq, jdbcType=INTEGER}) 
+	</insert>
+
+	
+	<!-- 과거 추천 여부 알아오기 -->
+	<select id="chkLike" parameterType="java.util.HashMap" resultType="int">
+		 select count(*)
+		 from final_reviewLike
+		 where userid = #{userid, jdbcType=VARCHAR} and seq = #{seq, jdbcType=VARCHAR}
+	</select>
+    
+    
+    <!-- 과거 비추천 여부 알아오기 -->
+	<select id="chkDislike" parameterType="java.util.HashMap" resultType="int">
+		 select count(*)
+		 from final_reviewDislike
+		 where userid = #{userid, jdbcType=VARCHAR} and seq = #{seq, jdbcType=VARCHAR}
+	</select>
+    
+    
+    <!-- 관광지 리뷰 추천수 알아오기 -->
+	<select id="getLikeCnt" parameterType="String" resultType="String">
+		 select count(*)
+		 from final_reviewLike
+		 where seq = #{seq, jdbcType=INTEGER}
+	</select>
+	
+	
+	<!-- 관광지 리뷰 비추천수 알아오기 -->
+	<select id="getDislikeCnt" parameterType="String" resultType="String">
+		 select count(*)
+		 from final_reviewDislike
+		 where seq = #{seq, jdbcType=INTEGER}
+	</select>
+    
+    
+   	 <!-- 이전글/다음글 가져오기 -->
+	 <resultMap type="java.util.HashMap" id="getPrevNextMap">
+		<result property="SEQ" 				column="seq" 			javaType="String" />
+		<result property="SUBJECT" 			column="subject" 		javaType="String" />
+		<result property="NSEQ"	 			column="nseq" 			javaType="String" />
+ 		<result property="NSUBJECT" 		column="nsubject" 		javaType="String" />
+ 		<result property="PSEQ" 			column="pseq" 			javaType="String" />
+ 		<result property="PSUBJECT" 		column="psubject" 		javaType="String" />
+	</resultMap>
+	<select id="getPrevNext" parameterType="java.util.HashMap" resultMap="getPrevNextMap">
+		select seq, subject, nseq, nsubject, pseq, psubject
+		from
+		( 
+		  select seq, subject,
+		        lead(seq,1) over (order by seq) nseq,
+		        lead(subject,1,'다음글이 없습니다') over (order by seq) nsubject,
+		        lag(seq,1) over (order by seq) pseq,
+		        lag(subject,1,'이전글이 없습니다') over (order by seq) psubject
+		  from final_stationBoard
+		  where status = 1 and station = #{station, jdbcType=VARCHAR} and depthno = 0
+		)
+		where seq = #{seq, jdbcType=INTEGER}
+	</select>
+	
+	
+	<!-- 시도, 관광지 이름이 존재하는지 체크 -->
+	<select id="chkTourLike" parameterType="java.util.HashMap" resultType="int">
+		 select count(*)
+		 from final_tourLike
+		 where sido = #{sido, jdbcType=VARCHAR} and name = #{name, jdbcType=VARCHAR}
+	</select>
+	
+	
+	<!-- 시도, 관광지 이름 추가하기 -->
+	<insert id="insertTourName" parameterType="java.util.HashMap">
+		insert into final_tourLike(likeno, sido, name, cnt)
+		values(seq_tourLike.nextval, #{sido, jdbcType=VARCHAR}, #{name, jdbcType=VARCHAR}, default) 
+	</insert>
+	
+	
+	<!-- 관광지 좋아요 하기 -->
+	<update id="insertTourLike" parameterType="java.util.HashMap">
+		update final_tourLike set cnt = cnt + 1 
+		where sido = #{sido, jdbcType=VARCHAR} and name = #{name, jdbcType=VARCHAR}
+	</update>
+	
+	
+	<!-- 관광지 좋아요 수 알아오기 -->
+	<select id="getTourLikeCnt" parameterType="java.util.HashMap" resultType="String">
+		 select cnt
+		 from final_tourLike
+		 where sido = #{sido, jdbcType=VARCHAR} and name = #{name, jdbcType=VARCHAR}
+	</select>
+	
+    
+    <!-- 관광지 통계1 -->
+   	<resultMap type="java.util.HashMap" id="getHjsStatistics1Map">
+		<result property="SIDO" 		column="sido" 			javaType="String" />
+ 		<result property="SCNT" 		column="scnt" 			javaType="String" />
+ 		<result property="RK" 			column="rk" 			javaType="String" />
+ 		<result property="PERCENTAGE" 	column="percentage" 	javaType="String" />
+ 	</resultMap>
+ 	
+	<select id="getHjsStatistics1" resultMap="getHjsStatistics1Map" parameterType="String">
+		select sido, scnt, 
+		rank() over (order by scnt desc) as rk,
+		trunc(scnt/(select sum(cnt) from final_tourLike) * 100, 1) as percentage
+		from 
+		  (
+		    select sido, sum(cnt) as scnt
+		    from final_tourLike
+		    group by sido
+		  )
+	</select>
+    
+    
+</mapper>

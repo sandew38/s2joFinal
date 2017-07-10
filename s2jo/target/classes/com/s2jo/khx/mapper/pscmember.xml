@@ -1,0 +1,137 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!-- ===== #26. mapper 기본설정 ===== -->
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd"> 
+
+<!-- ===== #27. 루트엘리먼트 & 네임스페이스 설정(프로젝트 전체 내에서 고유해야 한다.) ===== -->
+<mapper namespace="pscmember">
+
+
+	
+	<!-- ===== #1. 비회원 로그인 여부 알아오기 ===== -->
+<select id="nonloginEnd" parameterType="java.util.HashMap" resultType="int"> 
+
+select case( select count(*)
+            from final_nonmember
+            where nhp = #{nhp} and npwd = #{npwd} and status = 1 )
+      when 1 
+      then 1
+      else( case(select count(*) 
+                 from final_nonmember
+                 where nhp = #{nhp} and status = 0)
+            when 1 
+            then 0
+            else -1
+            end
+          )
+      end as NONLOGINCHECK
+from dual
+</select>
+	
+	
+	<!-- ===== #2. 로그인 성공한 비회원 정보 가져오기 ===== -->
+
+	<select id="getNonLoginEnd" parameterType="String" resultType="com.s2jo.khx.model.psc.khxpscNonMemberVO"> 
+	   select nonno, nhp, npwd, status
+	   from final_nonmember
+	   where status = 1 and nhp = #{nhp}
+	</select>
+
+	
+		
+	<!-- ===== #3. 정회원 로그인 여부 알아오기 ===== 		-->
+	<select id="loginEnd" parameterType="java.util.HashMap" resultType="int"> 
+	select case(select count(*)
+		        from final_member
+		        where userid = #{userid} and func_decrypted_pwd(#{userid}, #{pwd}) = substr(#{pwd},1,8) and status = 1 )
+        when 1 
+        then 1 
+        else ( case(select count(*)
+                    from final_member
+                    where userid = #{userid} and status = 0) 
+                when 1 
+                then 2 
+                else(
+                    case(
+                        select count(*)
+                        from final_member
+                        where userid = #{userid} and status = 1)
+                  when 1
+                  then 0
+                  else -1
+                  end) 
+        end)
+        end as LOGINCHECK
+		from dual
+	</select>
+<!-- 
+	 1 :  아이디가 있으며 status가 1 인경우, 로그인이 되는경우, 비밀번호가 일치하는경우
+     2 :  로그인이 되지않는 경우중에, 아이디가 있는 경우
+     0 :  로그인이 되지않는 경우중에, 아이디가 있지만, status가 0인경우
+     -1:  로그인이 되지않는 경우중에, 아이디가 있지만, 아이디가 없지만, status가 1인것 중에 아이디가 있는경우
+-->
+	
+	<!-- ===== #4. 정회원 로그인 완료요청! ===== 		-->
+	<select id="getLoginEnd" parameterType="java.util.HashMap" resultType="com.s2jo.khx.model.psc.khxpscMemberVO"> 
+		select userid, name, email, hp , func_decrypted_pwd(#{userid}, #{pwd}) as pwd 
+	    from final_member
+	    where status = 1 and userid = #{userid}
+	</select>
+
+	
+	<!-- ===== #5. 회원가입 완료요청! ===== 		-->
+	<insert id="memberRegisterEnd" parameterType="java.util.HashMap">
+		insert into final_member(userid, name, pwd, email, hp, post, addr1, addr2, joindate, status, birthday, gender)
+		values(#{userid,jdbcType=VARCHAR}, #{name}, func_encrypted_pwd(#{pwd}), #{email}, #{hp}, #{post}, #{addr1}, #{addr2}, default, default, #{birthday}, #{gender} )	
+	</insert>
+	
+	
+ <!-- ===== #6. 아이디 중복검사! -->
+
+	<select id="idDuplicateCheck" parameterType="String" resultType="int">
+	      select count(*) as cnt
+	      from final_member 
+	      where userid = #{userid}
+	</select>
+	
+	
+	<!-- ===== #7.비밀번호 찾기! -->
+	<select id="pwdFind" parameterType="java.util.HashMap" resultType="int">
+		select count(*) as cnt
+     	from final_member
+	  	where status = 1 and userid = #{userid} and email = #{email}
+	</select>
+
+	<!-- ===== #8.비밀번호 변경! -->
+	<update id="updatePwdUser" parameterType="java.util.HashMap">
+		update final_member set pwd = func_encrypted(#{pwd})   
+		where status = 1 and userid = #{userid} 
+	</update>	
+	
+	<!-- ===== #9.마이페이지에서 비밀번호 찾기! -->
+	<select id="MypagePwdFind" parameterType="java.util.HashMap" resultType="int">
+		select count(*) as cnt
+     	from final_member
+	  	where status = 1 and userid = #{userid} and email = #{email}
+	</select>
+
+	<!--  ===== #10.회원탈퇴!! -->
+    <update id="getDeleteUserID" parameterType="java.util.HashMap">
+		update final_member set status = 0
+	    where userid = #{deleteuserid}
+	</update>
+
+	<!-- ===== #11.마이페이지에서 비밀번호 변경! -->
+	<update id="updateMypagePwdUser" parameterType="java.util.HashMap">
+		update final_member set pwd = func_encrypted(#{pwd})   
+		where status = 1 and userid = #{userid} 
+	</update>
+	
+	<!-- DELETE 테이블에 INSERT 추가하자 -->
+</mapper>
+
+
+
+
+
+
