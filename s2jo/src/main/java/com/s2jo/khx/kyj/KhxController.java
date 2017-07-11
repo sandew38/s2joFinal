@@ -29,6 +29,7 @@ import com.s2jo.khx.model.kyj.TrainviewVO;
 import com.s2jo.khx.model.psc.khxpscMemberVO;
 import com.s2jo.khx.model.psc.khxpscNonMemberVO;
 import com.s2jo.khx.service.kyj.KhxService;
+import com.s2jo.khx.service.lsk.LskService;
 
 import oracle.net.aso.b;
 
@@ -46,6 +47,9 @@ public class KhxController {
 // ==== #33. 의존객체 주입하기 (DI : Dependency Injection) ====
 	@Autowired
 	private KhxService service; 
+	
+	@Autowired
+	private LskService lskservice;
 		
 // ==== #130. 파일 업로드 & 다운로드를 위한 FileManager 클래스 의존 객체 주입하기 		
 	@Autowired
@@ -786,6 +790,57 @@ public class KhxController {
 		req.setAttribute("trainclass", trainclass);
 		req.setAttribute("departuredate", departuredate);
 		req.setAttribute("traintype", traintype);
+		
+		
+		String cancel = (String)session.getAttribute("changeChk");
+		
+		if(cancel.equals("yes")) {
+			
+			khxpscNonMemberVO nonloginuser = (khxpscNonMemberVO)session.getAttribute("nonloginuser");
+			
+			loginuser = (khxpscMemberVO)session.getAttribute("loginuser");	
+			
+			String cancel_paymentcode = (String)session.getAttribute("cancel_paymentcode");
+			
+			System.out.println("########################## cancel_paymentcode ==> " + cancel_paymentcode);
+			
+			String cancel_orderseq = (String)session.getAttribute("orderseq");
+			
+			if(cancel_orderseq == null) {
+				cancel_orderseq = (String)session.getAttribute("cancel_orderseq");
+			}
+			
+			System.out.println("########################## cancel_orderseq ==> " + cancel_orderseq);
+			
+			if(nonloginuser == null && loginuser != null) {
+				
+				int mbr_setpay = lskservice.getMbr_BookingCancel1(cancel_paymentcode);
+				
+				int mbr_setorder = lskservice.getMbr_BookingCancel2(cancel_orderseq);
+				
+				System.out.println("##################### mbr_setpay => " + mbr_setpay);
+				System.out.println("##################### mbr_setorder => " + mbr_setorder);
+				
+				req.setAttribute("mbr_setpay", mbr_setpay);
+				req.setAttribute("mbr_setorder", mbr_setorder);
+				
+			}
+			else {
+
+				int non_setpay = lskservice.getNon_BookingCancel1(cancel_paymentcode);
+				
+				int non_setorder = lskservice.getNon_BookingCancel2(cancel_orderseq);
+				
+				System.out.println("##################### non_setpay => " + non_setpay);
+				System.out.println("##################### non_setorder => " + non_setorder);
+				
+				req.setAttribute("non_setpay", non_setpay);
+				req.setAttribute("non_setorder", non_setorder);
+				
+			}
+			
+			
+		}
 		
 		
 		return "khx/payEnd.tiles";

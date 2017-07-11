@@ -86,6 +86,12 @@ public class LskController {
 		String tqty = req.getParameter("tqty");
 		String paymentcode = req.getParameter("paymentcode");
 		
+		String cancel_paymentcode = req.getParameter("paymentcode");
+		session.setAttribute("cancel_paymentcode", cancel_paymentcode);
+		
+		String cancel_orderseq = req.getParameter("orderseq");
+		session.setAttribute("cancel_orderseq", cancel_orderseq);
+		
 		HashMap<String, Object> map = new HashMap<String, Object>();
 		
 		map.put("departuredate", departuredate);
@@ -98,11 +104,11 @@ public class LskController {
 		List<HashMap<String, Object>> list = service.getBookingModify(map);
 		
 		// 열차종류 리스트 가져오기
-		List<String> traintype = service.traintypeList();
+		List<String> traintypelist = service.traintypeList();
 
 		// 3. Service단으로 생성된 HashMap 보내기
 		req.setAttribute("list", list);
-		req.setAttribute("traintype", traintype);
+		req.setAttribute("traintypelist", traintypelist);
 		req.setAttribute("departure", list.get(0).get("DEPARTURE"));
 		req.setAttribute("arrival", list.get(0).get("ARRIVAL"));
 		
@@ -120,12 +126,11 @@ public class LskController {
 		String arrival = req.getParameter("arrival");
 		String departuredate = req.getParameter("departuredate");
 		
-		HashMap<String, Object> map = new HashMap<String, Object>(); 
+		HashMap<String, Object> map = new HashMap<String, Object>();
 		
 		map.put("traintype_pic", traintype_pic);
 		map.put("departure", departure);
 		map.put("arrival", arrival);
-		map.put("departuredate", departuredate);
 		
 		List<HashMap<String, Object>> reSelectList = service.reSelectList(map);
 		
@@ -135,8 +140,10 @@ public class LskController {
 		req.setAttribute("arrival", arrival);
 		req.setAttribute("traintype_pic", traintype_pic);
 		req.setAttribute("departuredate", departuredate);
+		req.setAttribute("reSelectList", reSelectList);
 			
 		return reSelectList;
+		
 	}
 
 
@@ -161,8 +168,8 @@ public class LskController {
 				
 		session.setAttribute("departuretime", departuretime);
 		
-		String trainno = req.getParameter("trainno");
-		session.setAttribute("trainno", trainno);
+		String traintype_pic = req.getParameter("traintype_pic");
+		session.setAttribute("traintype", traintype_pic);
 		
 		String paymentcode = req.getParameter("paymentcode");
 		
@@ -181,6 +188,8 @@ public class LskController {
 		System.out.println("##################### arrival => " + arrival);
 		System.out.println("##################### departuredate => " + departuredate);
 		System.out.println("##################### departuretime => " + departuretime);
+		System.out.println("##################### traintype_pic => " + traintype_pic);
+		System.out.println("##################### trainclass => " + trainclass);
 		
 		// 출/도착지, 출발일자에 해당하는 trainList 가져오기
 		HashMap<String, Object> map2 = new HashMap<String, Object>();
@@ -188,7 +197,7 @@ public class LskController {
 		map2.put("departure", departure);
 		map2.put("arrival", arrival);
 		map2.put("departuretime", departuretime);
-		map2.put("trainno", trainno);
+		map2.put("traintype_pic", traintype_pic);
 		
 		HashMap<String, Object> trainmap = service.trainmap(map2);
 		
@@ -201,15 +210,14 @@ public class LskController {
 		map.put("departuretime", departuretime);	// 새로 예약할 출발시간 (변경값)
 		
 		String retrainno = service.getretrainno(map);
+		session.setAttribute("trainno", retrainno);
 		
 		System.out.println("##################### retrainno => " + retrainno);
-		
-		req.setAttribute("retrainno", retrainno);
 		
 		// 팔린좌석 수 알아오기!
 		map = new HashMap<String, Object>();
 
-		map.put("trainno", trainno);				// 기차등급(ex. ktx or 무궁화)
+		map.put("traintype_pic", traintype_pic);	// 기차등급(ex. ktx or 무궁화)
 		map.put("classno", trainclass);				// 호차(ex. 1호~8호)	
 		map.put("departure", departure);			// 출발지
 		map.put("arrival", arrival);				// 도착지
@@ -222,7 +230,7 @@ public class LskController {
 		// 출발, 도착, 출발일, 열차번호로 좌석 선택 가능여부 알아오기 호차번호까지!!
 		map = new HashMap<String, Object>();
 		
-		map.put("trainno", trainno);				// 기차등급(ex. ktx or 무궁화)
+		map.put("traintype_pic", traintype_pic);				// 기차등급(ex. ktx or 무궁화)
 		map.put("classno", trainclass);				// 호차(ex. 1호~8호)		
 		map.put("departure", departure);			// 출발지
 		map.put("arrival", arrival);				// 도착지
@@ -266,10 +274,6 @@ public class LskController {
 		String getAgeline_Com = service.getAgeline_Com(paymentcode);
 		String getAgeline_Old = service.getAgeline_Old(paymentcode);
 		
-		System.out.println("############## getAgeline_Stu ==> " + getAgeline_Stu);
-		System.out.println("############## getAgeline_Com ==> " + getAgeline_Com);
-		System.out.println("############## getAgeline_Old ==> " + getAgeline_Old);
-		
 		String rate = (String)trainmap.get("RATE");
 		String turnaroundrate = (String)trainmap.get("TURNAROUNDRATE");
 		int turnaroundrateint = Integer.parseInt((String)trainmap.get("TURNAROUNDRATE"));
@@ -279,27 +283,23 @@ public class LskController {
 		System.out.println("########################## turnaroundrateint = > " + turnaroundrateint);
 		
 		
-		req.setAttribute("takenseatList", takenseatList);
-		req.setAttribute("remainseatcnt", remainseatcnt);
 		req.setAttribute("getAgeline_Stu", getAgeline_Stu);
 		req.setAttribute("getAgeline_Com", getAgeline_Com);
 		req.setAttribute("getAgeline_Old", getAgeline_Old);
-		req.setAttribute("rate", rate);
+		req.setAttribute("trainno", retrainno);
+		
 		req.setAttribute("turnaroundrate", turnaroundrate);
 		req.setAttribute("turnaroundrateint", turnaroundrateint);
+		req.setAttribute("traintype", traintype_pic);
+		req.setAttribute("departuredate", departuredate);
+		req.setAttribute("departure", departure);
+		req.setAttribute("arrival", arrival);
+		req.setAttribute("trainclass", trainclass);
+		req.setAttribute("remainseatcnt", remainseatcnt);
+		req.setAttribute("takenseatList", takenseatList);
+		req.setAttribute("rate", rate);
 		
-		/*
-		HashMap<String, Object> map = new HashMap<String, Object>();
 		
-		map.put("traintype_pic", traintype_pic);
-		map.put("time_pic", time_pic);
-		
-		List<HashMap<String, Object>> reSelectSeat = service.reSelectSeat(map);
-		
-
-		req.setAttribute("getAgeline_Stu", getAgeline_Stu);
-		req.setAttribute("paymentcode", paymentcode);
-		 */
 		return "lsk/reselectseat.tiles";
 	}
 	

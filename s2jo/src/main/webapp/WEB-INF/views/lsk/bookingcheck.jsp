@@ -63,14 +63,15 @@
 <script type="text/javascript">
 
 function goCancel() {
-	
+	/* alert("감>"); */
 	var cancelForm = document.cancelForm;
 	cancelForm.method = "GET";
-	cancelForm.action = "/khx/lsk/bookingCancel.action";
+	cancelForm.action = "/lsk/bookingCancel.action";
 	
 	cancelForm.submit();
 	
 }
+
 
 /* 
 function goCancel() {
@@ -101,7 +102,9 @@ function goCancel() {
 
 </script>
 
-<div class="#" style="background-color: white; padding-top: 7%;">
+<div  style="background-color:white; width:100%; height:100%; margin: auto; padding-top: 30px;  margin-bottom: 100px;">
+
+<div class="#" style="background-color: white; padding-top: 7%; padding-top: 30px; margin-bottom: 100px;">
 
 <div class="container">
 
@@ -116,6 +119,10 @@ function goCancel() {
 	<!-- <form name="bookingInfo"> -->
 	
 	<div id="home" class="tab-pane fade in active">
+	
+	<c:if test="${bmap == null}">
+	<h2 style="text-align: center;">예매한 내역이 없습니다.</h2>
+	</c:if>
 	
 	<c:if test="${bmap != null}">
     <c:forEach items="${bmap}" var="bmap">
@@ -142,15 +149,14 @@ function goCancel() {
         </div>
         </div>
         <div class="btn_s2" style="">
-        <a href="<%= request.getContextPath() %>/lsk/bookingEdit.action?paymentcode=${bmap.PAYMENTCODE}" class="button01_s2">예약변경</a>
-		<%-- <a href="" class="button02_s2" id="btnCancel" onClick="goCancel(${bmap.PAYMENTCODE}, ${bmap.ORDERSEQ});">예약취소</a> --%>
+        <a href="<%= request.getContextPath() %>/lsk/bookingEdit.action?paymentcode=${bmap.PAYMENTCODE}" class="button01_s2">예매 변경</a>
 		<a href="<%= request.getContextPath() %>/lsk/bookingCancel.action?paymentcode=${bmap.PAYMENTCODE}&orderseq=${bmap.ORDERSEQ}" class="button02_s2">예약취소</a>
-        </div>	
-        
         <form name="cancelForm">
+        <!-- <span class="button02_s2" onClick="goCancel();" >예매 취소</span> -->
         <input type="hidden" 	id="paymentcode" 	name="paymentcode"	  value="${bmap.PAYMENTCODE}" />
         <input type="hidden" 	id="orderseq" 		name="orderseq" 	  value="${bmap.ORDERSEQ}" />
   		</form>
+        </div>	
   		
   	</c:forEach>
   	</c:if>
@@ -158,7 +164,11 @@ function goCancel() {
   	</div> <!-- /home -->
   	
   	<!-- </form> -->
-  	<div id="menu1" class="tab-pane fade" name="cancelList" id="cancelList">
+  	<div id="menu1" class="tab-pane fade" name="cancelList" id="cancelList" style=" padding-top: 30px;  margin-bottom: 100px;">
+  	
+  	<c:if test="${cmap == null}">
+	<h2 style="text-align: center;">취소한 내역이 없습니다.</h2>
+	</c:if>
   	
   	<c:if test="${cmap != null}">
     <c:forEach items="${cmap}" var="cmap">
@@ -185,8 +195,6 @@ function goCancel() {
         </div>
         </div>
         
-        
-        
     </c:forEach>
     </c:if>
     
@@ -200,6 +208,6 @@ function goCancel() {
 
 </div> <!-- /# -->
 
-
+</div>
 
 					

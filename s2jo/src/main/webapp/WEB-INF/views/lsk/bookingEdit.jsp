@@ -119,7 +119,7 @@ $(document).ready(function(){
 		var traintype_pic = $('#traintype_pic').val();
 		var departuredate = $('#departuredate').val();
 
-		alert("일자" + departuredate);
+		// alert("일자" + departuredate);
 
 		form_data = { departure : departure
 					, arrival : arrival
@@ -140,9 +140,12 @@ $(document).ready(function(){
 				
 				$.each(data, function(indexentry, entry){
 					html += "<option value='" + entry.DEPARTURETIME + "'>" + entry.DEPARTURETIME + "</option>";
+					
 				});
 				
-				$("#time_pic").html(html);				
+				$("#time_pic").html(html);	
+				
+				
 			},
 			error: function(){
 				alert("code: "+request.status+"\n"+"message: "+request.responseText+"\n"+"error: "+error);
@@ -202,6 +205,13 @@ function goRepic() {
 		<div class="sub01-1_s2" align="center">
 		<br/>
 		<h3> ${map.DEPARTUREDATE} ${map.DEPARTURETIME} </h3>
+		<h3>열차등급 :
+        <c:if test="${map.TRAINTYPE == 1 }" >
+        KHX 
+        </c:if>
+        <c:if test="${map.TRAINTYPE == 2 }" >
+                    무궁화 
+        </c:if></h3>
 		<h3> 예매장수 : ${map.TQTY} </h3>
 		</div>
 		
@@ -225,7 +235,7 @@ function goRepic() {
 	
 	<div class="sub02-1_s2" align="center">
 		<select class="time_pic" name="time_pic" id="time_pic">
-			<option selected id=""> 예약시간대를 선택해주세요. </option>
+			<option selected id="time_onepic"> 예약시간대를 선택해주세요. </option>
 		</select>		
 		<span id = "" style="font-size: x-large; color : #639EB0; font-weight: bold;"></span>
 	</div>

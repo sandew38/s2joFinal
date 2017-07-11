@@ -40,10 +40,10 @@
 		on D.RUNINFOSEQ = E.RUNINFOSEQ
 		join FINAL_TRAININFO F
 		on E.TRAINNO = F.TRAINNO
-		where a.nonno = #{nonno} and  C.ORDERSTATUS = 1
+		where a.nonno = #{nonno} and  A.PAYSTATUS = 1
 		group by a.paymentcode, a.nonno, A.TOTALPRICE, A.payDATE, c.DEPARTUREDATE, 
 		e.departure, e.arrival, E.DEPARTURETIME, F.TRAINTYPE, G.TQTY, C.ORDERSEQ, E.TRAINNO, D.CLASSNO
-		order by to_date(C.DEPARTUREDATE) asc
+		order by a.paymentcode desc
     </select>
     
     
@@ -81,10 +81,10 @@
 		on D.RUNINFOSEQ = E.RUNINFOSEQ
 		join FINAL_TRAININFO F
 		on E.TRAINNO = F.TRAINNO
-		where a.userid = #{userid} and  C.ORDERSTATUS = 1
+		where a.userid = #{userid} and  A.PAYSTATUS = 1
 		group by a.paymentcode, a.userid, A.TOTALPRICE, A.payDATE, c.DEPARTUREDATE, 
 		e.departure, e.arrival, E.DEPARTURETIME, F.TRAINTYPE, G.TQTY, C.ORDERSEQ, E.TRAINNO, D.CLASSNO
-		order by to_date(C.DEPARTUREDATE) asc
+		order by a.paymentcode desc
     </select>
     
     
@@ -120,7 +120,7 @@
 		on D.RUNINFOSEQ = E.RUNINFOSEQ
 		join FINAL_TRAININFO F
 		on E.TRAINNO = F.TRAINNO
-		where a.userid = #{userid} and C.ORDERSTATUS = 0
+		where a.userid = #{userid} and A.PAYSTATUS = 0
 		group by a.paymentcode, a.userid, A.TOTALPRICE, A.payDATE, c.DEPARTUREDATE, e.departure, e.arrival, 
 		E.DEPARTURETIME, F.TRAINTYPE, G.TQTY, C.ORDERSTATUS
 		order by to_date(C.DEPARTUREDATE) asc
@@ -158,7 +158,7 @@
 		on D.RUNINFOSEQ = E.RUNINFOSEQ
 		join FINAL_TRAININFO F
 		on E.TRAINNO = F.TRAINNO
-		where a.nonno = #{nonno} and C.ORDERSTATUS = 0
+		where a.nonno = #{nonno} and A.PAYSTATUS = 0
 		group by a.paymentcode, a.userid, A.TOTALPRICE, A.payDATE, c.DEPARTUREDATE, e.departure, e.arrival, E.DEPARTURETIME, F.TRAINTYPE, G.TQTY, C.ORDERSTATUS
 		order by to_date(C.DEPARTUREDATE) asc
     </select>
@@ -238,10 +238,9 @@
 		on A.TRAINNO = B.TRAINNO
 		join FINAL_SEAT C
 		on B.RUNINFOSEQ = C.RUNINFOSEQ
-		join FINAL_TICKETDETAIL D
-		on C.SEATSEQ = D.SEATSEQ
-		where B.DEPARTURE = #{departure} and B.ARRIVAL = #{arrival} and D.DEPARTUREDATE = #{departuredate} and A.TRAINTYPE = #{traintype_pic} 
+		where B.DEPARTURE = #{departure} and B.ARRIVAL = #{arrival} and A.TRAINTYPE = #{traintype_pic} 
 		group by B.DEPARTURETIME
+		order by B.DEPARTURETIME asc
 	</select>
 	
 	<!-- 학생 Ageline 수 -->
@@ -305,7 +304,7 @@
 		on B.RUNINFOSEQ = C.RUNINFOSEQ
 		join FINAL_TICKETDETAIL D
 		on C.SEATSEQ = D.SEATSEQ
-		where B.DEPARTURE = #{departure} and B.ARRIVAL = #{arrival} and B.DEPARTURETIME = #{departuretime} and D.DEPARTUREDATE = #{departuredate}
+		where B.DEPARTURE = #{departure} and B.ARRIVAL = #{arrival} and B.DEPARTURETIME = #{departuretime}
 		group by A.TRAINNO
 	</select>
 	
@@ -344,7 +343,7 @@
 					      on A.Trainno = B.Trainno
 					    )C
 					 )T
-					 where traintype = #{trainno}
+					 where traintype = #{traintype_pic}
 					 and departure = #{departure}
 					 and arrival = #{arrival}
            and departuretime = #{departuretime}

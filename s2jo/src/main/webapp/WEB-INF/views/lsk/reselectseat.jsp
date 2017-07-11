@@ -288,7 +288,7 @@ function goselect(seatno)
 
 	alert("좌석선택");
 	var rate = $("#rate").val()*1;
-	alert("rate => " + rate);
+	// alert("rate => " + rate);
 	
 	var normalSeatCnt = document.getElementById("normalSeatCnt").innerHTML*1;
 	var studentSeatCnt = document.getElementById("studentSeatCnt").innerHTML*1;
@@ -630,14 +630,17 @@ function goConfirm()
 	// 유효성 검사 
 	var tqty = $("#tqty").val();	// 주문할 티켓 장 수 
 	var normal = $("#getAgeline_Com").val()*1;	// 선택한 일반좌석
-	alert("이번엔.. => " + normal);
+	// alert("일반.. => " + normal);
 	var students = $("#getAgeline_Stu").val()*1; // 선택한 중고생 좌석
+	// alert("학생.. => " + students);
 	var older = $("#getAgeline_Old").val()*1;		// 선택한 65세 이상 좌석
+	// alert("노인.. => " + older);
 	var totalPrice = $("#totalPrice").val();	// 티켓 총 가격 
 	var selectedseat = document.getElementById("selectedseat").innerHTML; // 선택한 좌석번호들
 
 	var sum = (normal+students+older);
-	alert("제발 ㅠㅠ => " + totalPrice);
+	// alert(sum);
+	// alert("토탈금액 ㅠㅠ => " + totalPrice);
 	
 	var normalSeatCnt = document.getElementById("normalSeatCnt").innerHTML*1;
 	var studentSeatCnt = document.getElementById("studentSeatCnt").innerHTML*1;

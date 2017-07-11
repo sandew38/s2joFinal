@@ -62,7 +62,7 @@
     ) T
     
         where T.RNO >= #{start1} and T.RNO <![CDATA[<=]]> #{end1}
-
+  order by seq desc
    </select>
 	
 	
