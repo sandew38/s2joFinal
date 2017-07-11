@@ -794,7 +794,7 @@ public class KhxController {
 		
 		String cancel = (String)session.getAttribute("changeChk");
 		
-		if(cancel.equals("yes")) {
+		if("yes".equalsIgnoreCase(cancel)) {
 			
 			khxpscNonMemberVO nonloginuser = (khxpscNonMemberVO)session.getAttribute("nonloginuser");
 			
@@ -802,7 +802,7 @@ public class KhxController {
 			
 			String cancel_paymentcode = (String)session.getAttribute("cancel_paymentcode");
 			
-			System.out.println("########################## cancel_paymentcode ==> " + cancel_paymentcode);
+//			System.out.println("########################## cancel_paymentcode ==> " + cancel_paymentcode);
 			
 			String cancel_orderseq = (String)session.getAttribute("orderseq");
 			
@@ -810,7 +810,7 @@ public class KhxController {
 				cancel_orderseq = (String)session.getAttribute("cancel_orderseq");
 			}
 			
-			System.out.println("########################## cancel_orderseq ==> " + cancel_orderseq);
+//			System.out.println("########################## cancel_orderseq ==> " + cancel_orderseq);
 			
 			if(nonloginuser == null && loginuser != null) {
 				
@@ -818,8 +818,8 @@ public class KhxController {
 				
 				int mbr_setorder = lskservice.getMbr_BookingCancel2(cancel_orderseq);
 				
-				System.out.println("##################### mbr_setpay => " + mbr_setpay);
-				System.out.println("##################### mbr_setorder => " + mbr_setorder);
+//				System.out.println("##################### mbr_setpay => " + mbr_setpay);
+//				System.out.println("##################### mbr_setorder => " + mbr_setorder);
 				
 				req.setAttribute("mbr_setpay", mbr_setpay);
 				req.setAttribute("mbr_setorder", mbr_setorder);
@@ -831,8 +831,8 @@ public class KhxController {
 				
 				int non_setorder = lskservice.getNon_BookingCancel2(cancel_orderseq);
 				
-				System.out.println("##################### non_setpay => " + non_setpay);
-				System.out.println("##################### non_setorder => " + non_setorder);
+//				System.out.println("##################### non_setpay => " + non_setpay);
+//				System.out.println("##################### non_setorder => " + non_setorder);
 				
 				req.setAttribute("non_setpay", non_setpay);
 				req.setAttribute("non_setorder", non_setorder);

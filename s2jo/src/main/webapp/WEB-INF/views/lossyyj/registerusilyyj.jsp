@@ -1,10 +1,27 @@
 <%@ page language="java" contentType="text/html; charset=UTF-8"
    pageEncoding="UTF-8"%>
-<div style="width: 860px; padding-left: 30%; float: left;">
+
+<div id="fuckingimage">    
+
 <style type="text/css">
 table, th, td, input, textarea {
    border: solid gray 1px;
 }
+
+#fuckingimage {
+width:100%; height:100%; margin: auto; padding-top: 30px;  margin-bottom: 50px;
+}
+
+ 
+
+
+
+
+.fuck2
+{
+background-color: white;
+}
+
 
 #table {
    border-collapse: collapse;
@@ -57,7 +74,7 @@ table, th, td, input, textarea {
       writeFrm.submit();
        */
       if(findplace.trim() == ""){
-    	  alert("습득장소를 입력하여주세요 ^-^");
+         alert("습득장소를 입력하여주세요 ^-^");
           $("#findplace").val();
           $("#findplace").focus();
           event.preventDefault();
@@ -65,24 +82,24 @@ table, th, td, input, textarea {
       }
       
       else if (article.trim() == ""){
-    	  alert("습득물명을 입력하여주세여 ^-^");
-    	  $("#article").val();
+         alert("습득물명을 입력하여주세여 ^-^");
+         $("#article").val();
           $("#article").focus();
           event.preventDefault();
           return;
       } 
       else if (writepw.trim() == "") {
-    	  alert("글암호를 입력하여주세여 ^-^");
-    	  $("#writepw").val();
+         alert("글암호를 입력하여주세여 ^-^");
+         $("#writepw").val();
           $("#writepw").focus();
           event.preventDefault();
           return;
-    	  
+         
       }
        
       else{
-    	  
-    	  writeFrm.action = "/khx/regiseterEnd.action";
+         
+         writeFrm.action = "/khx/regiseterEnd.action";
           writeFrm.method = "post";
           writeFrm.submit();
       }
@@ -94,9 +111,10 @@ table, th, td, input, textarea {
    
    </script>
    
-<div style=" width:100%; margin-right:500px; border: solid 0px red; /* margin-top: 20px; */">
-	  <div style=" /* width: 100%; */ margin-left: 200px;">
-	<h1>유실물등록</h1>
+   
+<div class="fuck2" style="  width:100%; margin-right:500px; border: solid 0px red;  height:100%;">
+     <div style="/* width: 100%; */ text-align: center;" align="center">
+   <h1>유실물등록</h1>
 </div>
 
 
@@ -107,9 +125,9 @@ table, th, td, input, textarea {
         enctype = "multipart/form-data" 을 해주어야만 파일첨부가 된당.
         action="<%=request.getContextPath()%>/addEnd.action" method="post"
     -->
-
+<div style="margin-top: 10px; margin-left: 300px; height:500px;">
       <form name="writeFrm" enctype="multipart/form-data">
-          <table id="table" style= "margin-top: 15%; margin-left: 160px;">
+          <table id="table" style= "margin-top: 4%;  width: 1000px; ">
             <tr>
                <th>회원아이디</th>
                <td><input type="text" name="userid"
@@ -161,33 +179,33 @@ table, th, td, input, textarea {
    
                
                  <td colspan="3"><select name="finddate1">
-							<option value="1995" selected>1995</option>
-							<option value="1996">1996</option>
-							<option value="1997">1997</option>
-							<option value="1998">1998</option>
-							<option value="1999">1999</option>
-							<option value="2000">2000</option>
-							<option value="2001">2001</option>
-							<option value="2002">2002</option>
-							<option value="2003">2003</option>
-							<option value="2004">2004</option>
-							<option value="2005">2005</option>
-							<option value="2006">2006</option>
-							<option value="2007">2007</option>
-							<option value="2008">2008</option>
-							<option value="2009">2009</option>
-							<option value="2010">2010</option>
-							<option value="2011">2011</option>
-							<option value="2012">2012</option>
-							<option value="2013">2013</option>
-							<option value="2014">2014</option>
-							<option value="2015">2015</option>
-							<option value="2016">2016</option>
-							<option value="2017">2017</option>
-							
-</select>							
-							<span>년</span>
-							 
+                     <option value="1995" selected>1995</option>
+                     <option value="1996">1996</option>
+                     <option value="1997">1997</option>
+                     <option value="1998">1998</option>
+                     <option value="1999">1999</option>
+                     <option value="2000">2000</option>
+                     <option value="2001">2001</option>
+                     <option value="2002">2002</option>
+                     <option value="2003">2003</option>
+                     <option value="2004">2004</option>
+                     <option value="2005">2005</option>
+                     <option value="2006">2006</option>
+                     <option value="2007">2007</option>
+                     <option value="2008">2008</option>
+                     <option value="2009">2009</option>
+                     <option value="2010">2010</option>
+                     <option value="2011">2011</option>
+                     <option value="2012">2012</option>
+                     <option value="2013">2013</option>
+                     <option value="2014">2014</option>
+                     <option value="2015">2015</option>
+                     <option value="2016">2016</option>
+                     <option value="2017">2017</option>
+                     
+</select>                     
+                     <span>년</span>
+                      
  <select name="finddate2">
  
 <option value="1" selected>1</option>
@@ -298,9 +316,10 @@ table, th, td, input, textarea {
          <br/><br/>
 
          <span style="margin-left: 720px; "><button type="button" onClick="goWrite();">쓰기</button></span>
-         <span style="margin-left: 720px; "><button type="button" onClick="javascript:history.back();">취소</button></span>
+         <span><button type="button" onClick="javascript:history.back();">취소</button></span>
 
    
  </form>
+</div> 
 </div>
 </div>
